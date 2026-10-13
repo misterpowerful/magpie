@@ -1,12 +1,13 @@
 <?php
 
 use App\Models\Preference;
+use App\Models\User;
 
 test('preference belongs to a user and carries the spec default thresholds', function () {
     $preference = Preference::factory()->create();
 
     expect($preference->user_id)->not->toBeNull();
-    expect($preference->user)->toBeInstanceOf(App\Models\User::class);
+    expect($preference->user)->toBeInstanceOf(User::class);
     expect($preference->remote_floor)->toBe(150000);
     expect($preference->onsite_floor)->toBe(180000);
     expect($preference->hard_min)->toBe(140000);
