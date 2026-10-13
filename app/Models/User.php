@@ -23,6 +23,11 @@ class User extends Authenticatable
         return $this->hasMany(Preference::class);
     }
 
+    public function listings(): HasMany
+    {
+        return $this->hasMany(Listing::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *
