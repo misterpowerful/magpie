@@ -24,6 +24,20 @@ class Preference extends Model
     /** @use HasFactory<\Database\Factories\PreferenceFactory> */
     use HasFactory;
 
+    /**
+     * Mirrors the migration's column defaults so a freshly-instantiated
+     * (unsaved or just-created) model reflects them immediately, since
+     * Eloquent doesn't reload DB-applied defaults after an insert.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'remote_floor' => 150000,
+        'onsite_floor' => 180000,
+        'hard_min' => 140000,
+        'onsite_states' => '["IL"]',
+    ];
+
     protected static function booted(): void
     {
         static::saving(function (Preference $preference) {
