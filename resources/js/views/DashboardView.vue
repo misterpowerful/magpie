@@ -1,9 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import api from '../api';
 import { useAuthStore } from '../stores/auth';
 
 const auth = useAuthStore();
+const router = useRouter();
 
 const listings = ref([]);
 const loading = ref(false);
@@ -64,6 +66,7 @@ onMounted(loadListings);
         <q-header class="bg-primary text-white">
             <q-toolbar>
                 <q-toolbar-title>Magpie 2.0</q-toolbar-title>
+                <q-btn flat label="Sites" @click="router.push({ name: 'admin-sites' })" />
                 <q-btn flat label="Log out" @click="logout" />
             </q-toolbar>
         </q-header>
