@@ -11,6 +11,12 @@ class FakeLlmDriver implements LlmDriver
 {
     public int $calls = 0;
 
+    public int $completeCalls = 0;
+
+    public array $completePrompts = [];
+
+    public string $completeResponse = '[]';
+
     public function __construct(
         private readonly string $rating = 'Strong',
     ) {}
@@ -28,5 +34,13 @@ class FakeLlmDriver implements LlmDriver
             durationMs: 1,
             promptChars: 100,
         );
+    }
+
+    public function complete(string $prompt, string $model): string
+    {
+        $this->completeCalls++;
+        $this->completePrompts[] = $prompt;
+
+        return $this->completeResponse;
     }
 }

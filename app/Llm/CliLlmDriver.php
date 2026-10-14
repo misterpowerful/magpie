@@ -27,6 +27,30 @@ class CliLlmDriver implements LlmDriver
         $prompt = $this->promptBuilder->build($listing, $preferences);
         $model = config('magpie.llm.scoring_model');
 
+        $call = $this->invoke($prompt, $model, "listing:{$listing->id}");
+        $parsed = $this->parseScoreJson($call['result']);
+
+        return new ScoreResult(
+            rating: $parsed['rating'],
+            reasons: $parsed['reasons'],
+            flags: $parsed['flags'],
+            commentary: $parsed['commentary'],
+            model: $model,
+            durationMs: $call['duration_ms'],
+            promptChars: strlen($prompt),
+        );
+    }
+
+    public function complete(string $prompt, string $model): string
+    {
+        return $this->invoke($prompt, $model, 'generic')['result'];
+    }
+
+    /**
+     * @return array{result: string, duration_ms: int, cost_usd: ?float}
+     */
+    private function invoke(string $prompt, string $model, string $context): array
+    {
         $started = microtime(true);
 
         $result = Process::timeout(config('magpie.llm.cli_timeout'))->run([
@@ -43,7 +67,7 @@ class CliLlmDriver implements LlmDriver
         $durationMs = (int) round((microtime(true) - $started) * 1000);
 
         if (! $result->successful()) {
-            $this->log($listing, $model, $durationMs, strlen($prompt), null, 'process_failed');
+            $this->log($context, $model, $durationMs, strlen($prompt), null, 'process_failed');
 
             throw new LlmDriverException("claude CLI exited {$result->exitCode()}: {$result->errorOutput()}");
         }
@@ -51,24 +75,18 @@ class CliLlmDriver implements LlmDriver
         $envelope = json_decode($result->output(), true);
 
         if (! is_array($envelope) || ($envelope['is_error'] ?? true)) {
-            $this->log($listing, $model, $durationMs, strlen($prompt), $envelope['total_cost_usd'] ?? null, 'cli_error');
+            $this->log($context, $model, $durationMs, strlen($prompt), $envelope['total_cost_usd'] ?? null, 'cli_error');
 
             throw new LlmDriverException('claude CLI returned an error envelope: '.$result->output());
         }
 
-        $parsed = $this->parseScoreJson($envelope['result'] ?? '');
+        $this->log($context, $model, $durationMs, strlen($prompt), $envelope['total_cost_usd'] ?? null, 'ok');
 
-        $this->log($listing, $model, $durationMs, strlen($prompt), $envelope['total_cost_usd'] ?? null, 'ok');
-
-        return new ScoreResult(
-            rating: $parsed['rating'],
-            reasons: $parsed['reasons'],
-            flags: $parsed['flags'],
-            commentary: $parsed['commentary'],
-            model: $model,
-            durationMs: $durationMs,
-            promptChars: strlen($prompt),
-        );
+        return [
+            'result' => $envelope['result'] ?? '',
+            'duration_ms' => $durationMs,
+            'cost_usd' => $envelope['total_cost_usd'] ?? null,
+        ];
     }
 
     /**
@@ -97,10 +115,10 @@ class CliLlmDriver implements LlmDriver
         ];
     }
 
-    private function log(Listing $listing, string $model, int $durationMs, int $promptChars, ?float $costUsd, string $outcome): void
+    private function log(string $context, string $model, int $durationMs, int $promptChars, ?float $costUsd, string $outcome): void
     {
-        Log::channel('llm')->info('cli score call', [
-            'listing_id' => $listing->id,
+        Log::channel('llm')->info('cli call', [
+            'context' => $context,
             'model' => $model,
             'duration_ms' => $durationMs,
             'prompt_chars' => $promptChars,

@@ -1,0 +1,82 @@
+<?php
+
+namespace App\Inbox;
+
+use Webklex\PHPIMAP\Client;
+use Webklex\PHPIMAP\ClientManager;
+use Webklex\PHPIMAP\Message;
+
+/**
+ * Spec section 5 "email" driver: polls a Gmail label (exposed over
+ * IMAP as a folder — the label must have "Show in IMAP" enabled in
+ * Gmail settings) via an app password, and relabels processed
+ * messages from "jobs" to "jobs-processed" so they're never
+ * reprocessed (spec: "After processing, relabel jobs to
+ * jobs-processed").
+ *
+ * NOT exercised against a real mailbox by the automated test suite —
+ * that needs a real Gmail app password (spec section 11 risk #1,
+ * explicitly flagged there as something to "test early" by hand).
+ * EmailIntakeService's orchestration logic is tested against a fake
+ * MailSource instead.
+ */
+class ImapMailSource implements MailSource
+{
+    public function __construct(
+        private readonly ClientManager $manager = new ClientManager,
+    ) {}
+
+    public function fetchUnprocessed(): array
+    {
+        $client = $this->connect();
+        $folder = $client->getFolderByName(config('magpie.mail.inbox_label'));
+
+        if ($folder === null) {
+            throw new \RuntimeException('IMAP folder/label "'.config('magpie.mail.inbox_label').'" not found — check "Show in IMAP" is enabled for this Gmail label.');
+        }
+
+        $messages = $folder->messages()->all()->get();
+
+        return $messages->map(fn (Message $message) => $this->toIncomingEmail($message))->all();
+    }
+
+    public function markProcessed(IncomingEmail $email): void
+    {
+        $client = $this->connect();
+        $folder = $client->getFolderByName(config('magpie.mail.inbox_label'));
+        $message = $folder?->query()->messageId($email->messageId)->get()->first();
+
+        $message?->move(config('magpie.mail.processed_label'));
+    }
+
+    private function connect(): Client
+    {
+        $client = $this->manager->make([
+            'host' => config('magpie.mail.host'),
+            'port' => config('magpie.mail.port'),
+            'encryption' => config('magpie.mail.encryption'),
+            'validate_cert' => true,
+            'username' => config('magpie.mail.username'),
+            'password' => config('magpie.mail.password'),
+            'protocol' => 'imap',
+        ]);
+
+        $client->connect();
+
+        return $client;
+    }
+
+    private function toIncomingEmail(Message $message): IncomingEmail
+    {
+        $from = $message->getFrom()->get(0);
+
+        return new IncomingEmail(
+            messageId: (string) $message->getMessageId(),
+            from: $from?->mail ?? '',
+            subject: (string) $message->getSubject(),
+            bodyHtml: $message->getHTMLBody() ?: null,
+            bodyText: $message->getTextBody() ?: null,
+            receivedAt: $message->getDate()->toDate(),
+        );
+    }
+}
