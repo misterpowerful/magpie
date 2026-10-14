@@ -5,6 +5,7 @@ import api from '@/shared/lib/api'
 import { useAuthStore } from '@/features/auth/stores/auth'
 import { listingColumns } from '../constants'
 import { useListingStatusDialog } from '../composables/useListingStatusDialog'
+import { useRunSummary } from '../composables/useRunSummary'
 import type { Listing } from '../types'
 
 const auth = useAuthStore()
@@ -12,6 +13,8 @@ const router = useRouter()
 
 const listings = ref<Listing[]>([])
 const loading = ref(false)
+
+const { backlog, latestRun, load: loadRunSummary } = useRunSummary()
 
 async function loadListings() {
     loading.value = true
@@ -42,7 +45,10 @@ async function logout() {
     window.location.href = '/login'
 }
 
-onMounted(loadListings)
+onMounted(() => {
+    loadListings()
+    loadRunSummary()
+})
 </script>
 
 <template>
@@ -57,6 +63,15 @@ onMounted(loadListings)
 
         <q-page-container>
             <q-page class="q-pa-md">
+                <div class="row q-mb-md q-gutter-md items-center">
+                    <q-chip color="info" text-color="white" icon="hourglass_empty">
+                        Backlog: {{ backlog }} waiting
+                    </q-chip>
+                    <q-chip v-if="latestRun" :color="latestRun.status === 'done' ? 'positive' : 'warning'" text-color="white">
+                        Last run ({{ latestRun.trigger }}): {{ latestRun.status }}
+                    </q-chip>
+                </div>
+
                 <q-table
                     :rows="listings"
                     :columns="listingColumns"

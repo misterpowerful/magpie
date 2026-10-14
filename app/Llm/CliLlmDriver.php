@@ -71,6 +71,10 @@ final class CliLlmDriver implements LlmDriver
         if (! $result->successful()) {
             $this->log($context, $model, $durationMs, strlen($prompt), null, 'process_failed');
 
+            if ($this->looksRateLimited($result->errorOutput())) {
+                throw new LlmRateLimitedException("claude CLI reported a rate/usage limit: {$result->errorOutput()}");
+            }
+
             throw new LlmDriverException("claude CLI exited {$result->exitCode()}: {$result->errorOutput()}");
         }
 
@@ -78,6 +82,12 @@ final class CliLlmDriver implements LlmDriver
 
         if (! is_array($envelope) || ($envelope['is_error'] ?? true)) {
             $this->log($context, $model, $durationMs, strlen($prompt), $envelope['total_cost_usd'] ?? null, 'cli_error');
+
+            $errorText = is_array($envelope) ? (string) ($envelope['result'] ?? '') : $result->output();
+
+            if ($this->looksRateLimited($errorText)) {
+                throw new LlmRateLimitedException("claude CLI reported a rate/usage limit: {$errorText}");
+            }
 
             throw new LlmDriverException('claude CLI returned an error envelope: '.$result->output());
         }
@@ -115,6 +125,11 @@ final class CliLlmDriver implements LlmDriver
             'flags' => array_values((array) ($json['flags'] ?? [])),
             'commentary' => $commentary,
         ];
+    }
+
+    private function looksRateLimited(string $text): bool
+    {
+        return (bool) preg_match('/\b(rate.?limit|usage.?limit|quota\s*exceeded|too\s*many\s*requests|429|overloaded)\b/i', $text);
     }
 
     private function log(string $context, string $model, int $durationMs, int $promptChars, ?float $costUsd, string $outcome): void

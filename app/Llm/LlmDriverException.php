@@ -6,4 +6,4 @@ namespace App\Llm;
 
 use RuntimeException;
 
-final class LlmDriverException extends RuntimeException {}
+class LlmDriverException extends RuntimeException {}

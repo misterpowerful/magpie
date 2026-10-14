@@ -6,6 +6,7 @@ namespace App\Intake;
 
 use App\Models\Site;
 use App\Support\RemoteTypeGuesser;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -18,7 +19,16 @@ final class RemotiveDriver implements IntakeDriver
 {
     public function fetch(Site $site): array
     {
-        $response = Http::get($site->url)->throw();
+        return $this->parse($site, Http::get($site->url)->throw());
+    }
+
+    public function headers(): array
+    {
+        return [];
+    }
+
+    public function parse(Site $site, Response $response): array
+    {
         $jobs = $response->json('jobs') ?? [];
 
         $stubs = [];

@@ -6,13 +6,14 @@ namespace App\Intake;
 
 use App\Models\Site;
 use App\Support\RemoteTypeGuesser;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 /**
  * LaraJobs RSS (larajobs.com/feed). Well-structured custom job:* fields,
  * but <description>/<content:encoded> are typically empty — this
- * source needs the HTML/enrichment driver (a later ticket) to get the
- * full body before hard filters or scoring can run on it.
+ * source needs the generic enrichment stage (ListingEnrichmentService)
+ * to get the full body before hard filters or scoring can run on it.
  */
 final class LaraJobsDriver implements IntakeDriver
 {
@@ -20,8 +21,16 @@ final class LaraJobsDriver implements IntakeDriver
 
     public function fetch(Site $site): array
     {
-        $response = Http::get($site->url)->throw();
+        return $this->parse($site, Http::get($site->url)->throw());
+    }
 
+    public function headers(): array
+    {
+        return [];
+    }
+
+    public function parse(Site $site, Response $response): array
+    {
         $xml = simplexml_load_string($response->body());
 
         if ($xml === false) {

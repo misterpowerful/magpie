@@ -6,6 +6,7 @@ use App\Http\Controllers\Actions\Auth\CurrentUserAction;
 use App\Http\Controllers\Actions\Health\PingAction;
 use App\Http\Controllers\Actions\Listings\IndexListingsAction;
 use App\Http\Controllers\Actions\Listings\UpdateListingStatusAction;
+use App\Http\Controllers\Actions\Runs\IndexRunsAction;
 use App\Http\Controllers\Actions\Sites\DestroySiteAction;
 use App\Http\Controllers\Actions\Sites\IndexSitesAction;
 use App\Http\Controllers\Actions\Sites\RunSiteAction;
@@ -20,6 +21,7 @@ Route::get('/ping', PingAction::class)->middleware('auth:sanctum');
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/listings', IndexListingsAction::class);
     Route::patch('/listings/{listing}/status', UpdateListingStatusAction::class);
+    Route::get('/runs', IndexRunsAction::class);
 
     Route::prefix('admin')->group(function () {
         Route::get('/sites', IndexSitesAction::class);

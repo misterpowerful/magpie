@@ -9,6 +9,7 @@ use App\Support\RemoteTypeGuesser;
 use DOMDocument;
 use DOMNode;
 use DOMXPath;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -40,19 +41,24 @@ final class HtmlIntakeDriver implements IntakeDriver
 {
     public function fetch(Site $site): array
     {
-        $selectors = $site->config['selectors'] ?? [];
-        $listItemExpr = $selectors['list_item'] ?? null;
-        $linkExpr = $selectors['link'] ?? null;
-        $titleExpr = $selectors['title'] ?? null;
+        $this->validateSelectors($site);
 
-        if ($listItemExpr === null || $linkExpr === null || $titleExpr === null) {
-            throw new RuntimeException("Site \"{$site->name}\" is missing required selectors (list_item, link, title)");
-        }
+        return $this->parse($site, Http::get($site->url)->throw());
+    }
 
-        $response = Http::get($site->url)->throw();
+    public function headers(): array
+    {
+        return [];
+    }
+
+    public function parse(Site $site, Response $response): array
+    {
+        $selectors = $this->validateSelectors($site);
+        $linkExpr = $selectors['link'];
+        $titleExpr = $selectors['title'];
 
         $xpath = $this->buildXPath($response->body());
-        $items = $xpath->query($listItemExpr);
+        $items = $xpath->query($selectors['list_item']);
 
         if ($items === false) {
             throw new RuntimeException("Site \"{$site->name}\" has an invalid selectors.list_item XPath expression");
@@ -82,6 +88,23 @@ final class HtmlIntakeDriver implements IntakeDriver
         }
 
         return $stubs;
+    }
+
+    /**
+     * @return array{list_item: string, link: string, title: string, company?: string, location?: string}
+     */
+    private function validateSelectors(Site $site): array
+    {
+        $selectors = $site->config['selectors'] ?? [];
+        $listItemExpr = $selectors['list_item'] ?? null;
+        $linkExpr = $selectors['link'] ?? null;
+        $titleExpr = $selectors['title'] ?? null;
+
+        if ($listItemExpr === null || $linkExpr === null || $titleExpr === null) {
+            throw new RuntimeException("Site \"{$site->name}\" is missing required selectors (list_item, link, title)");
+        }
+
+        return $selectors;
     }
 
     private function buildXPath(string $html): DOMXPath

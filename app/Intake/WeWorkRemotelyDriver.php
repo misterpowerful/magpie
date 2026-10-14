@@ -6,6 +6,7 @@ namespace App\Intake;
 
 use App\Models\Site;
 use App\Support\RemoteTypeGuesser;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -17,8 +18,16 @@ final class WeWorkRemotelyDriver implements IntakeDriver
 {
     public function fetch(Site $site): array
     {
-        $response = Http::withHeaders(['User-Agent' => 'Mozilla/5.0'])->get($site->url)->throw();
+        return $this->parse($site, Http::withHeaders($this->headers())->get($site->url)->throw());
+    }
 
+    public function headers(): array
+    {
+        return ['User-Agent' => 'Mozilla/5.0'];
+    }
+
+    public function parse(Site $site, Response $response): array
+    {
         $xml = simplexml_load_string($response->body());
 
         if ($xml === false) {

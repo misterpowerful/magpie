@@ -34,4 +34,18 @@ return [
         'timeout' => env('MAGPIE_ENRICHMENT_TIMEOUT', 15),
         'min_body_length' => env('MAGPIE_ENRICHMENT_MIN_BODY_LENGTH', 200),
     ],
+
+    'run' => [
+        // Spec section 8 "Run behavior": a global wall-clock cap for the
+        // whole run, plus a smaller per-stage cap so one slow stage
+        // (e.g. a hung intake fetch) can't eat the entire budget. Both
+        // are checked per-item inside each stage's loop.
+        'time_cap_minutes' => env('MAGPIE_RUN_TIME_CAP_MINUTES', 120),
+        'stage_timeout_minutes' => env('MAGPIE_RUN_STAGE_TIMEOUT_MINUTES', 30),
+        // Pooled intake fetch timeout per site (spec section 8 "per-site
+        // stage timeout"), and the run lock's own safety-valve TTL (a bit
+        // over the time cap, in case the process dies mid-run).
+        'intake_timeout_seconds' => env('MAGPIE_RUN_INTAKE_TIMEOUT_SECONDS', 15),
+        'lock_seconds' => env('MAGPIE_RUN_LOCK_SECONDS', 7500),
+    ],
 ];

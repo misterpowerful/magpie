@@ -19,6 +19,11 @@ class FakeLlmDriver implements LlmDriver
 
     public string $completeResponse = '[]';
 
+    public ?\Throwable $throwOnScore = null;
+
+    /** @var array<int, int> */
+    public array $scoredListingIds = [];
+
     public function __construct(
         private readonly string $rating = 'Strong',
     ) {}
@@ -26,6 +31,11 @@ class FakeLlmDriver implements LlmDriver
     public function score(Listing $listing, Preference $preferences): ScoreResult
     {
         $this->calls++;
+        $this->scoredListingIds[] = $listing->id;
+
+        if ($this->throwOnScore !== null) {
+            throw $this->throwOnScore;
+        }
 
         return new ScoreResult(
             rating: $this->rating,

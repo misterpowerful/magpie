@@ -24,3 +24,16 @@ export interface Listing {
     applied_at: string | null
     first_seen_at: string
 }
+
+export type RunTrigger = 'schedule' | 'catchup'
+
+export type RunStatus = 'running' | 'done' | 'paused_time' | 'paused_rate_limited' | 'failed'
+
+export interface Run {
+    id: number
+    trigger: RunTrigger
+    status: RunStatus
+    started_at: string
+    ended_at: string | null
+    stage_stats: Record<string, unknown> | null
+}
