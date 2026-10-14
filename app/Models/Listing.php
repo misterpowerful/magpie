@@ -57,6 +57,11 @@ class Listing extends Model
         return $this->hasOne(ListingSalary::class);
     }
 
+    public function score(): HasOne
+    {
+        return $this->hasOne(ListingScore::class);
+    }
+
     /**
      * @return array<string, string>
      */

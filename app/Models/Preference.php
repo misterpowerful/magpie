@@ -54,6 +54,26 @@ class Preference extends Model
     }
 
     /**
+     * Hash of the scoring-relevant preference fields (everything except
+     * resume_text/resume_hash, which are tracked separately) — used to
+     * decide whether a listing needs rescoring (spec section 7:
+     * "Rescore only if the resume or preferences hash changed").
+     */
+    public function scoringHash(): string
+    {
+        return hash('sha256', json_encode([
+            'remote_floor' => $this->remote_floor,
+            'onsite_floor' => $this->onsite_floor,
+            'hard_min' => $this->hard_min,
+            'onsite_states' => $this->onsite_states,
+            'include_titles' => $this->include_titles,
+            'exclude_titles' => $this->exclude_titles,
+            'include_stack' => $this->include_stack,
+            'exclude_stack' => $this->exclude_stack,
+        ]));
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

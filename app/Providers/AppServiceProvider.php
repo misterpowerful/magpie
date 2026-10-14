@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Contracts\LlmDriver;
+use App\Llm\CliLlmDriver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,7 +13,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(LlmDriver::class, match (config('magpie.llm.driver')) {
+            'cli' => CliLlmDriver::class,
+            default => CliLlmDriver::class,
+        });
     }
 
     /**
