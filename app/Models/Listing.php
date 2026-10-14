@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'user_id',
@@ -23,6 +24,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'status_reason',
     'applied_at',
     'first_seen_at',
+    'filter_reason',
+    'filter_flags',
 ])]
 class Listing extends Model
 {
@@ -49,6 +52,11 @@ class Listing extends Model
         return $this->hasMany(ListingStatusHistory::class)->latest('created_at');
     }
 
+    public function salary(): HasOne
+    {
+        return $this->hasOne(ListingSalary::class);
+    }
+
     /**
      * @return array<string, string>
      */
@@ -57,6 +65,7 @@ class Listing extends Model
         return [
             'first_seen_at' => 'datetime',
             'applied_at' => 'datetime',
+            'filter_flags' => 'array',
         ];
     }
 }
