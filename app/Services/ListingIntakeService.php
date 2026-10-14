@@ -20,7 +20,7 @@ final class ListingIntakeService
     public function firstOrCreateFromStub(int $userId, array $stub): Listing
     {
         $canonicalUrl = UrlCanonicalizer::canonicalize($stub['url']);
-        $contentHash = $this->contentHash($stub['company'] ?? null, $stub['title']);
+        $contentHash = self::contentHash($stub['company'] ?? null, $stub['title']);
 
         $existing = Listing::where('user_id', $userId)
             ->where(function ($query) use ($canonicalUrl, $contentHash) {
@@ -48,7 +48,13 @@ final class ListingIntakeService
         ]);
     }
 
-    private function contentHash(?string $company, string $title): string
+    /**
+     * Public so the v1 data importer (one-time migration, spec section
+     * 12 "Deployment and cutover") can dedupe imported rows the same
+     * way live intake would — if a site later surfaces the "same" job
+     * again, it should match this imported row, not create a duplicate.
+     */
+    public static function contentHash(?string $company, string $title): string
     {
         $normalize = fn (?string $value) => preg_replace('/\s+/', ' ', trim(strtolower((string) $value)));
 
