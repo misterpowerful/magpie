@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Support\Facades\DB;
 
 test('sqlite connection honors journal_mode config as WAL', function () {

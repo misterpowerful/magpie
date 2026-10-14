@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Intake\IntakeDriverRegistry;
 use App\Intake\LaraJobsDriver;
 use App\Intake\RemoteOkDriver;

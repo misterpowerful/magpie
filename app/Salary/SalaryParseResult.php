@@ -1,25 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Salary;
 
-class SalaryParseResult
+final readonly class SalaryParseResult
 {
     /**
      * @param  array<int, array{low: ?float, high: ?float, period: string, type: string, label: ?string}>  $tiers
      * @param  array<string, bool>  $flags
      */
     public function __construct(
-        public readonly array $tiers,
-        public readonly ?string $snippet,
-        public readonly string $confidence,
-        public readonly array $flags,
+        public array $tiers,
+        public ?string $snippet,
+        public string $confidence,
+        public array $flags,
     ) {}
 
     /**
      * Base-salary tiers only (excludes OTE-only figures), which is what
      * pass/fail and ranking decisions are made against.
      *
-     * @return array<int, array>
+     * @return array<int, array{low: ?float, high: ?float, period: string, type: string, label: ?string}>
      */
     public function baseTiers(): array
     {

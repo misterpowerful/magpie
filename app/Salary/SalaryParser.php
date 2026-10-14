@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Salary;
 
 /**
@@ -11,7 +13,7 @@ namespace App\Salary;
  * never FAIL. True ambiguity is meant for an LLM fallback in a later
  * ticket, not for ever-more regex here.
  */
-class SalaryParser
+final class SalaryParser
 {
     private const ANCHOR_WORDS = '/\b(salary|base\s*salary|base\s*pay|base|compensation|comp|pay\s*range|pay|OTE|on[- ]target earnings|total\s*compensation)\b/i';
 
@@ -159,7 +161,8 @@ class SalaryParser
     }
 
     /**
-     * @return array{low: ?float, high: ?float, period: string, type: string, label: ?string, flags: array}|null
+     * @param  array<int|string, string>  $match
+     * @return array{low: ?float, high: ?float, period: string, type: string, label: ?string, flags: array{ote: bool, non_usd: bool, open_ended: bool}}|null
      */
     private function resolveFigure(array $match, string $segment): ?array
     {

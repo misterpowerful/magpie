@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Intake;
 
 use App\Models\Site;
@@ -12,7 +14,7 @@ use Illuminate\Support\Facades\Http;
  * source needs the HTML/enrichment driver (a later ticket) to get the
  * full body before hard filters or scoring can run on it.
  */
-class LaraJobsDriver implements IntakeDriver
+final class LaraJobsDriver implements IntakeDriver
 {
     private const JOB_NS = 'https://larajobs.com';
 

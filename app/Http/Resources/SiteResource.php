@@ -1,11 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources;
 
+use App\Models\Site;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class SiteResource extends JsonResource
+/**
+ * @mixin Site
+ */
+final class SiteResource extends JsonResource
 {
     /**
      * Transform the resource into an array.

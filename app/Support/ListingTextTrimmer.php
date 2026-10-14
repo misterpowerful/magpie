@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Support;
 
 /**
@@ -11,7 +13,7 @@ namespace App\Support;
  * deliberately kept, since "mission/stability alignment" is a scoring
  * criterion that needs it.
  */
-class ListingTextTrimmer
+final class ListingTextTrimmer
 {
     private const BOILERPLATE_PARAGRAPH = '/\b(equal\s*opportunity\s*employer|EEOC?\b|we\s*are\s*committed\s*to\s*diversity|background\s*check|drug\s*test|visa\s*sponsorship|not\s*able\s*to\s*sponsor|E-?Verify|reasonable\s*accommodation|privacy\s*policy|applicant\s*privacy|pursuant\s*to\s*the\s*.*?\bact\b)/i';
 

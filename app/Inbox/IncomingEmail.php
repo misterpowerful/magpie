@@ -1,15 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Inbox;
 
-class IncomingEmail
+final readonly class IncomingEmail
 {
     public function __construct(
-        public readonly string $messageId,
-        public readonly string $from,
-        public readonly string $subject,
-        public readonly ?string $bodyHtml,
-        public readonly ?string $bodyText,
-        public readonly \DateTimeInterface $receivedAt,
+        public string $messageId,
+        public string $from,
+        public string $subject,
+        public ?string $bodyHtml,
+        public ?string $bodyText,
+        public \DateTimeInterface $receivedAt,
     ) {}
 }

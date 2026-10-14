@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Llm;
 
-class ScoreResult
+final readonly class ScoreResult
 {
     public const RATINGS = ['Strong', 'Moderate', 'Weak'];
 
@@ -11,12 +13,12 @@ class ScoreResult
      * @param  array<int, string>  $flags
      */
     public function __construct(
-        public readonly string $rating,
-        public readonly array $reasons,
-        public readonly array $flags,
-        public readonly ?string $commentary,
-        public readonly string $model,
-        public readonly int $durationMs,
-        public readonly int $promptChars,
+        public string $rating,
+        public array $reasons,
+        public array $flags,
+        public ?string $commentary,
+        public string $model,
+        public int $durationMs,
+        public int $promptChars,
     ) {}
 }

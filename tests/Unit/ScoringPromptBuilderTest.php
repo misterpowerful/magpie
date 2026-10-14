@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Llm\ScoringPromptBuilder;
 use App\Models\Listing;
 use App\Models\Preference;

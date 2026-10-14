@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Filters\FilterResult;
@@ -25,7 +27,7 @@ use App\Salary\SalaryParser;
  * else proceeds (stub: stays 'new' awaiting enrichment; hard: becomes
  * filtered_in, ready for scoring in a later ticket).
  */
-class ListingFilterService
+final class ListingFilterService
 {
     public function __construct(
         private readonly TitleFilter $titleFilter,

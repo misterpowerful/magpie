@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Inbox;
 
 use App\Contracts\LlmDriver;
@@ -12,7 +14,7 @@ use Illuminate\Support\Facades\Log;
  * salary, so these stubs get raw_text = null — the html/enrichment
  * driver (a later ticket) fetches the real posting from `url`.
  */
-class HaikuFallbackParser implements EmailParser
+final class HaikuFallbackParser implements EmailParser
 {
     public function __construct(
         private readonly LlmDriver $driver,

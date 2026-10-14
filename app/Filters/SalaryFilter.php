@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filters;
 
 use App\Models\Preference;
@@ -9,7 +11,7 @@ use App\Salary\SalaryParseResult;
  * Spec section 6 "Salary" pass/fail/ranking rules, applied to an
  * already-parsed SalaryParseResult (see SalaryParser).
  */
-class SalaryFilter
+final class SalaryFilter
 {
     public function check(SalaryParseResult $result, string $remoteType, Preference $preferences): FilterResult
     {

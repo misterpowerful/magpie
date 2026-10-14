@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Inbox;
 
 /**
@@ -7,7 +9,7 @@ namespace App\Inbox;
  * claims the email. HaikuFallbackParser always claims everything, so
  * it must be registered last.
  */
-class EmailParserRegistry
+final class EmailParserRegistry
 {
     /** @var array<int, EmailParser> */
     private array $parsers = [];

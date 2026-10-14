@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Inbox\HaikuFallbackParser;
 use App\Inbox\IncomingEmail;
 use Tests\Support\FakeLlmDriver;

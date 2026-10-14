@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Support\UrlCanonicalizer;
 
 test('strips known tracking params', function () {

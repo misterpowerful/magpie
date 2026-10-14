@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Intake;
 
 use App\Models\Site;
@@ -11,7 +13,7 @@ use Illuminate\Support\Facades\Http;
  * <description> carries the full HTML job body, so this source needs
  * no separate enrichment fetch.
  */
-class WeWorkRemotelyDriver implements IntakeDriver
+final class WeWorkRemotelyDriver implements IntakeDriver
 {
     public function fetch(Site $site): array
     {

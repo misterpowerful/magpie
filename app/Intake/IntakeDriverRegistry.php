@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Intake;
 
 use App\Models\Site;
@@ -12,7 +14,7 @@ use RuntimeException;
  * added later needs a matching adapter class registered here (or, for
  * plain HTML pages, the html driver's selector-based config instead).
  */
-class IntakeDriverRegistry
+final class IntakeDriverRegistry
 {
     /** @var array<string, class-string<IntakeDriver>> */
     private const ADAPTERS = [
@@ -20,6 +22,7 @@ class IntakeDriverRegistry
         'larajobs' => LaraJobsDriver::class,
         'remotive' => RemotiveDriver::class,
         'remote_ok' => RemoteOkDriver::class,
+        'html' => HtmlIntakeDriver::class,
     ];
 
     /**

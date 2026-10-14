@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Inbox\EmailParser;
 use App\Inbox\EmailParserRegistry;
 use App\Inbox\IncomingEmail;

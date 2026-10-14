@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Intake\RemotiveDriver;
 use App\Models\Site;
 use Illuminate\Support\Facades\Http;

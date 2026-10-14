@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Listing;
 use Illuminate\Support\Carbon;
 
-class ListingStatusService
+final class ListingStatusService
 {
     /**
      * Set a listing's triage status and append a history row. Shared by

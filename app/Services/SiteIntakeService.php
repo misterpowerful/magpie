@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Intake\IntakeDriverRegistry;
@@ -14,7 +16,7 @@ use Throwable;
  * the outcome on the site itself so the dashboard/admin panel can show
  * per-site status (spec sections 5 and 10).
  */
-class SiteIntakeService
+final class SiteIntakeService
 {
     public function __construct(
         private readonly IntakeDriverRegistry $registry,

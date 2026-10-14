@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filters;
 
 use App\Models\Preference;
@@ -12,7 +14,7 @@ use App\Models\Preference;
  * set, or an include list present with no match, is UNKNOWN — never an
  * outright accept or reject on title alone.
  */
-class TitleFilter
+final class TitleFilter
 {
     public function check(string $title, Preference $preferences): FilterResult
     {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Inbox;
 
 use Webklex\PHPIMAP\Client;
@@ -20,7 +22,7 @@ use Webklex\PHPIMAP\Message;
  * EmailIntakeService's orchestration logic is tested against a fake
  * MailSource instead.
  */
-class ImapMailSource implements MailSource
+final class ImapMailSource implements MailSource
 {
     public function __construct(
         private readonly ClientManager $manager = new ClientManager,
@@ -72,7 +74,7 @@ class ImapMailSource implements MailSource
 
         return new IncomingEmail(
             messageId: (string) $message->getMessageId(),
-            from: $from?->mail ?? '',
+            from: $from->mail ?? '',
             subject: (string) $message->getSubject(),
             bodyHtml: $message->getHTMLBody() ?: null,
             bodyText: $message->getTextBody() ?: null,

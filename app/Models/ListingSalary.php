@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -11,6 +13,9 @@ class ListingSalary extends Model
 {
     protected $table = 'listing_salary';
 
+    /**
+     * @return BelongsTo<Listing, $this>
+     */
     public function listing(): BelongsTo
     {
         return $this->belongsTo(Listing::class);

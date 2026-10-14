@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Intake;
 
 use App\Models\Site;
@@ -10,7 +12,7 @@ use Illuminate\Support\Facades\Http;
  * Remote OK JSON API. The first array element is a metadata/legal
  * banner, not a job — skip it.
  */
-class RemoteOkDriver implements IntakeDriver
+final class RemoteOkDriver implements IntakeDriver
 {
     public function fetch(Site $site): array
     {

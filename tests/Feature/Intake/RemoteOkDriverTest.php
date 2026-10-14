@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Intake\RemoteOkDriver;
 use App\Models\Site;
 use Illuminate\Support\Facades\Http;

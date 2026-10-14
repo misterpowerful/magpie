@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests;
 
 use App\Intake\IntakeDriverRegistry;
@@ -8,14 +10,15 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateSiteRequest extends FormRequest
+final class UpdateSiteRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Ownership is checked via SitePolicy in UpdateSiteAction — this
+     * FormRequest only validates input shape.
      */
     public function authorize(): bool
     {
-        return $this->route('site')->user_id === $this->user()->id;
+        return true;
     }
 
     /**

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Llm;
 
 use App\Contracts\LlmDriver;
@@ -16,7 +18,7 @@ use Illuminate\Support\Facades\Process;
  * `--permission-prompts none` guarantees it never hangs waiting for an
  * approval that can't come in an unattended run.
  */
-class CliLlmDriver implements LlmDriver
+final class CliLlmDriver implements LlmDriver
 {
     public function __construct(
         private readonly ScoringPromptBuilder $promptBuilder = new ScoringPromptBuilder,

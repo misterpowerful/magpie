@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filters;
 
 /**
@@ -8,7 +10,7 @@ namespace App\Filters;
  * mention anywhere) fails. Soft language ("Java or similar") is left
  * UNKNOWN, not failed, and passes through to scoring.
  */
-class StackFilter
+final class StackFilter
 {
     private const PHP_SIGNALS = '/\b(PHP|Laravel|Symfony|WordPress|Drupal|CodeIgniter|CakePHP)\b/i';
 

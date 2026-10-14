@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Llm;
 
 use App\Models\Listing;
@@ -13,7 +15,7 @@ use App\Support\ListingTextTrimmer;
  * same run, so it's built once per run and reused — only the posting
  * section changes per call.
  */
-class ScoringPromptBuilder
+final class ScoringPromptBuilder
 {
     public function __construct(
         private readonly ListingTextTrimmer $trimmer = new ListingTextTrimmer,

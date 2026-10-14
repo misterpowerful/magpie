@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Support;
 
-class UrlCanonicalizer
+final class UrlCanonicalizer
 {
     /**
      * Known tracking query params to strip. Extend as new ones turn up in

@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Listing;
 use App\Support\UrlCanonicalizer;
 use Illuminate\Support\Carbon;
 
-class ListingIntakeService
+final class ListingIntakeService
 {
     /**
      * Find an existing listing for this user (by canonical URL, falling

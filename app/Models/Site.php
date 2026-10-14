@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Database\Factories\SiteFactory;
@@ -8,6 +10,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property array<string, mixed>|null $config
+ * @property array<string, mixed>|null $recipe
+ */
 #[Fillable(['user_id', 'name', 'url', 'driver', 'config', 'recipe', 'enabled', 'last_run_at', 'last_status'])]
 class Site extends Model
 {
@@ -23,6 +29,9 @@ class Site extends Model
 
     public const STATUSES = ['ok', 'needs_login', 'recipe_broken', 'error'];
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

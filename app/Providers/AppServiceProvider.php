@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
 use App\Contracts\LlmDriver;
@@ -8,6 +10,11 @@ use App\Inbox\HaikuFallbackParser;
 use App\Inbox\ImapMailSource;
 use App\Inbox\MailSource;
 use App\Llm\CliLlmDriver;
+use App\Models\Listing;
+use App\Models\Site;
+use App\Policies\ListingPolicy;
+use App\Policies\SitePolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -38,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::policy(Site::class, SitePolicy::class);
+        Gate::policy(Listing::class, ListingPolicy::class);
     }
 }

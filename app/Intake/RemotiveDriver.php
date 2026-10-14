@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Intake;
 
 use App\Models\Site;
@@ -12,7 +14,7 @@ use Illuminate\Support\Facades\Http;
  * catch-up) is well under that, and this is a private single-user
  * dashboard, not a public job board republishing their listings.
  */
-class RemotiveDriver implements IntakeDriver
+final class RemotiveDriver implements IntakeDriver
 {
     public function fetch(Site $site): array
     {

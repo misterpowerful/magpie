@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -13,6 +15,9 @@ class ListingStatusHistory extends Model
 
     const UPDATED_AT = null;
 
+    /**
+     * @return BelongsTo<Listing, $this>
+     */
     public function listing(): BelongsTo
     {
         return $this->belongsTo(Listing::class);

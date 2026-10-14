@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Database\Factories\PreferenceFactory;
@@ -8,6 +10,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property array<int, string>|null $onsite_states
+ * @property array<int, string>|null $include_titles
+ * @property array<int, string>|null $exclude_titles
+ * @property array<int, string>|null $include_stack
+ * @property array<int, string>|null $exclude_stack
+ */
 #[Fillable([
     'user_id',
     'remote_floor',
@@ -48,6 +57,9 @@ class Preference extends Model
         });
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

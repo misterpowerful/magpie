@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -18,16 +20,25 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    /**
+     * @return HasMany<Preference, $this>
+     */
     public function preferences(): HasMany
     {
         return $this->hasMany(Preference::class);
     }
 
+    /**
+     * @return HasMany<Listing, $this>
+     */
     public function listings(): HasMany
     {
         return $this->hasMany(Listing::class);
     }
 
+    /**
+     * @return HasMany<Site, $this>
+     */
     public function sites(): HasMany
     {
         return $this->hasMany(Site::class);

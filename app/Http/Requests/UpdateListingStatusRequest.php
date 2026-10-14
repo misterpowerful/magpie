@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests;
 
 use App\Models\Listing;
@@ -7,14 +9,15 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateListingStatusRequest extends FormRequest
+final class UpdateListingStatusRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Ownership is checked via ListingPolicy in UpdateListingStatusAction
+     * — this FormRequest only validates input shape.
      */
     public function authorize(): bool
     {
-        return $this->route('listing')->user_id === $this->user()->id;
+        return true;
     }
 
     /**

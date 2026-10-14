@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Contracts\LlmDriver;
@@ -14,7 +16,7 @@ use Illuminate\Support\Carbon;
  * rescored, and a listing is only rescored at all if the resume or
  * preferences changed since its last score.
  */
-class ListingScoringService
+final class ListingScoringService
 {
     public function __construct(
         private readonly LlmDriver $driver,

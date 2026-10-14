@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Filters\FilterResult;
 use App\Filters\StackFilter;
 

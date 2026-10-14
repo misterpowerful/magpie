@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Inbox\EmailParserRegistry;
@@ -15,7 +17,7 @@ use Throwable;
  * fails to parse is left alone (not relabeled) so it's retried next
  * run rather than silently lost.
  */
-class EmailIntakeService
+final class EmailIntakeService
 {
     public function __construct(
         private readonly MailSource $mailSource,

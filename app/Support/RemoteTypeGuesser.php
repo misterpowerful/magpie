@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Support;
 
-class RemoteTypeGuesser
+final class RemoteTypeGuesser
 {
     public static function guess(?string $text): ?string
     {
