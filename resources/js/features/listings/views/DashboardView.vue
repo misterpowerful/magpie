@@ -14,7 +14,7 @@ const router = useRouter()
 const listings = ref<Listing[]>([])
 const loading = ref(false)
 
-const { backlog, latestRun, load: loadRunSummary } = useRunSummary()
+const { backlog, latestRun, load: loadRunSummary, subscribeToLiveUpdates } = useRunSummary(() => auth.user?.id)
 
 async function loadListings() {
     loading.value = true
@@ -48,6 +48,7 @@ async function logout() {
 onMounted(() => {
     loadListings()
     loadRunSummary()
+    subscribeToLiveUpdates()
 })
 </script>
 

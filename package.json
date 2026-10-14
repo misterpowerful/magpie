@@ -26,7 +26,9 @@
     "dependencies": {
         "@quasar/extras": "^2.1.0",
         "axios": "^1.20.0",
+        "laravel-echo": "^2.6.1",
         "pinia": "^4.0.3",
+        "pusher-js": "^8.6.0",
         "quasar": "^2.35.1",
         "vue": "^3.5.44",
         "vue-router": "^4.6.4"

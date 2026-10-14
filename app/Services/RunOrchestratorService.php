@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\Notifier;
+use App\Events\RunProgressUpdated;
 use App\Inbox\EmailParserRegistry;
 use App\Inbox\MailSource;
 use App\Llm\LlmRateLimitedException;
@@ -42,6 +44,7 @@ final class RunOrchestratorService
         private readonly ListingFilterService $filterService,
         private readonly ListingEnrichmentService $enrichmentService,
         private readonly ListingScoringService $scoringService,
+        private readonly Notifier $notifier,
     ) {}
 
     public function run(string $trigger): Run
@@ -63,41 +66,83 @@ final class RunOrchestratorService
         try {
             if ($this->withinBudget($globalDeadline)) {
                 $stats['intake'] = $this->timed(fn () => $this->runIntakeStage($user));
+                $this->broadcastProgress($run, $user, 'running', $stats);
             }
 
             if ($this->withinBudget($globalDeadline)) {
                 $stats['stub_filter'] = $this->timed(fn () => $this->runStubFilterStage($user, $preferences, $this->stageDeadline($globalDeadline)));
+                $this->broadcastProgress($run, $user, 'running', $stats);
             }
 
             if ($this->withinBudget($globalDeadline)) {
                 $stats['enrichment'] = $this->timed(fn () => $this->runEnrichmentStage($user, $this->stageDeadline($globalDeadline)));
+                $this->broadcastProgress($run, $user, 'running', $stats);
             }
 
             if ($this->withinBudget($globalDeadline)) {
                 $stats['hard_filter'] = $this->timed(fn () => $this->runHardFilterStage($user, $preferences, $this->stageDeadline($globalDeadline)));
+                $this->broadcastProgress($run, $user, 'running', $stats);
             }
 
             if ($this->withinBudget($globalDeadline)) {
                 $stats['scoring'] = $this->timed(fn () => $this->runScoringStage($user, $preferences, $this->stageDeadline($globalDeadline)));
-            }
-        } catch (LlmRateLimitedException $e) {
-            $run->update(['status' => 'paused_rate_limited', 'ended_at' => Carbon::now(), 'stage_stats' => $stats]);
+                $this->broadcastProgress($run, $user, 'running', $stats);
 
-            return $run;
+                if ($stats['scoring']['rate_limited'] ?? false) {
+                    $run->update(['status' => 'paused_rate_limited', 'ended_at' => Carbon::now(), 'stage_stats' => $stats]);
+                    $this->broadcastProgress($run, $user, 'paused_rate_limited', $stats);
+                    $this->notifyOfStrongMatches($stats);
+
+                    return $run;
+                }
+            }
         } catch (Throwable $e) {
             Log::error('Run failed', ['run_id' => $run->id, 'error' => $e->getMessage()]);
             $run->update(['status' => 'failed', 'ended_at' => Carbon::now(), 'stage_stats' => $stats]);
+            $this->broadcastProgress($run, $user, 'failed', $stats);
 
             return $run;
         }
 
-        $run->update([
-            'status' => $this->withinBudget($globalDeadline) ? 'done' : 'paused_time',
-            'ended_at' => Carbon::now(),
-            'stage_stats' => $stats,
-        ]);
+        $status = $this->withinBudget($globalDeadline) ? 'done' : 'paused_time';
+
+        $run->update(['status' => $status, 'ended_at' => Carbon::now(), 'stage_stats' => $stats]);
+        $this->broadcastProgress($run, $user, $status, $stats);
+        $this->notifyOfStrongMatches($stats);
 
         return $run;
+    }
+
+    /**
+     * @param  array<string, mixed>  $stats
+     */
+    private function broadcastProgress(Run $run, User $user, string $status, array $stats): void
+    {
+        $backlog = Listing::where('user_id', $user->id)
+            ->whereIn('state', ['new', 'fetched', 'filtered_in'])
+            ->count();
+
+        event(new RunProgressUpdated($user->id, $run->id, $status, $stats, $backlog));
+    }
+
+    /**
+     * Spec section 9/10: "Pushover notification when a run finishes
+     * with new Strong matches."
+     *
+     * @param  array<string, mixed>  $stats
+     */
+    private function notifyOfStrongMatches(array $stats): void
+    {
+        $strong = $stats['scoring']['strong'] ?? 0;
+
+        if ($strong < 1) {
+            return;
+        }
+
+        $this->notifier->notify(
+            'Magpie: new Strong match'.($strong > 1 ? 'es' : ''),
+            "{$strong} new Strong-rated listing".($strong > 1 ? 's' : '').' from this run.',
+        );
     }
 
     /**
@@ -223,11 +268,11 @@ final class RunOrchestratorService
      * scored first (spec section 8: "scoring of survivors (best
      * candidates first)").
      *
-     * @return array{scored: int, skipped: int, failed: int, timed_out: bool}
+     * @return array{scored: int, strong: int, skipped: int, failed: int, timed_out: bool, rate_limited: bool}
      */
     private function runScoringStage(User $user, Preference $preferences, Carbon $deadline): array
     {
-        $stats = ['scored' => 0, 'skipped' => 0, 'failed' => 0, 'timed_out' => false];
+        $stats = ['scored' => 0, 'strong' => 0, 'skipped' => 0, 'failed' => 0, 'timed_out' => false, 'rate_limited' => false];
 
         $query = Listing::query()
             ->where('listings.user_id', $user->id)
@@ -246,8 +291,13 @@ final class RunOrchestratorService
             try {
                 $score = $this->scoringService->score($listing, $preferences);
                 $stats[$score ? 'scored' : 'skipped']++;
+
+                if ($score && $score->rating === 'Strong') {
+                    $stats['strong']++;
+                }
             } catch (LlmRateLimitedException $e) {
-                throw $e;
+                $stats['rate_limited'] = true;
+                break;
             } catch (Throwable $e) {
                 Log::error('Scoring failed for a listing', ['listing_id' => $listing->id, 'error' => $e->getMessage()]);
                 $stats['failed']++;

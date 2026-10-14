@@ -3,16 +3,21 @@
 declare(strict_types=1);
 
 use App\Contracts\LlmDriver;
+use App\Contracts\Notifier;
+use App\Events\RunProgressUpdated;
 use App\Inbox\MailSource;
 use App\Llm\LlmRateLimitedException;
+use App\Llm\ScoreResult;
 use App\Models\Listing;
 use App\Models\ListingSalary;
 use App\Models\Preference;
 use App\Models\User;
 use App\Services\RunOrchestratorService;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\FakeLlmDriver;
 use Tests\Support\FakeMailSource;
+use Tests\Support\FakeNotifier;
 
 function makeAdminUser(): User
 {
@@ -21,6 +26,8 @@ function makeAdminUser(): User
 
 beforeEach(function () {
     $this->app->instance(MailSource::class, new FakeMailSource);
+    $this->notifier = new FakeNotifier;
+    $this->app->instance(Notifier::class, $this->notifier);
 });
 
 test('a full pipeline sweep advances a listing from new all the way to scored', function () {
@@ -155,4 +162,76 @@ test('catchup and schedule triggers are both recorded on the Run row', function 
     $run = app(RunOrchestratorService::class)->run('catchup');
 
     expect($run->trigger)->toBe('catchup');
+});
+
+test('a run that scores a Strong match sends a Pushover-style notification', function () {
+    $user = makeAdminUser();
+    Preference::factory()->create(['user_id' => $user->id]);
+    Listing::factory()->for($user)->create(['state' => 'filtered_in']);
+
+    $this->app->instance(LlmDriver::class, new FakeLlmDriver('Strong'));
+
+    app(RunOrchestratorService::class)->run('schedule');
+
+    expect($this->notifier->notifications)->toHaveCount(1);
+    expect($this->notifier->notifications[0]['message'])->toContain('1 new Strong-rated listing');
+});
+
+test('a run with no Strong matches never sends a notification', function () {
+    $user = makeAdminUser();
+    Preference::factory()->create(['user_id' => $user->id]);
+    Listing::factory()->for($user)->create(['state' => 'filtered_in']);
+
+    $this->app->instance(LlmDriver::class, new FakeLlmDriver('Weak'));
+
+    app(RunOrchestratorService::class)->run('schedule');
+
+    expect($this->notifier->notifications)->toBeEmpty();
+});
+
+test('a rate-limited run still notifies about Strong matches scored before the limit hit', function () {
+    $user = makeAdminUser();
+    Preference::factory()->create(['user_id' => $user->id]);
+
+    $scored = Listing::factory()->for($user)->create(['state' => 'filtered_in', 'first_seen_at' => now()->subMinute()]);
+    Listing::factory()->for($user)->create(['state' => 'filtered_in', 'first_seen_at' => now()]);
+
+    // Scores the first listing normally, then rate-limits on the second.
+    $driver = new class('Strong') extends FakeLlmDriver
+    {
+        public function score(Listing $listing, Preference $preferences): ScoreResult
+        {
+            if ($this->calls >= 1) {
+                $this->calls++;
+
+                throw new LlmRateLimitedException('rate limited');
+            }
+
+            return parent::score($listing, $preferences);
+        }
+    };
+    $this->app->instance(LlmDriver::class, $driver);
+
+    $run = app(RunOrchestratorService::class)->run('schedule');
+
+    expect($run->status)->toBe('paused_rate_limited');
+    expect($scored->refresh()->state)->toBe('scored');
+    expect($this->notifier->notifications)->toHaveCount(1);
+});
+
+test('each completed stage broadcasts a RunProgressUpdated event', function () {
+    Event::fake([RunProgressUpdated::class]);
+
+    $user = makeAdminUser();
+    Preference::factory()->create(['user_id' => $user->id]);
+
+    $this->app->instance(LlmDriver::class, new FakeLlmDriver);
+
+    $run = app(RunOrchestratorService::class)->run('schedule');
+
+    Event::assertDispatched(RunProgressUpdated::class, function (RunProgressUpdated $event) use ($user, $run) {
+        return $event->userId === $user->id
+            && $event->runId === $run->id
+            && $event->status === 'done';
+    });
 });

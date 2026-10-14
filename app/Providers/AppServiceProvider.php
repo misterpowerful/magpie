@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Contracts\LlmDriver;
+use App\Contracts\Notifier;
 use App\Inbox\EmailParserRegistry;
 use App\Inbox\HaikuFallbackParser;
 use App\Inbox\ImapMailSource;
@@ -12,6 +13,7 @@ use App\Inbox\MailSource;
 use App\Llm\CliLlmDriver;
 use App\Models\Listing;
 use App\Models\Site;
+use App\Notifiers\PushoverNotifier;
 use App\Policies\ListingPolicy;
 use App\Policies\SitePolicy;
 use Illuminate\Support\Facades\Gate;
@@ -30,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->bind(MailSource::class, ImapMailSource::class);
+
+        $this->app->bind(Notifier::class, PushoverNotifier::class);
 
         // No per-sender parsers yet — building one against guessed HTML
         // for LinkedIn/Indeed would be worse than not having it (see
