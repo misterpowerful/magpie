@@ -4,20 +4,91 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Models\Run;
+use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 /**
- * Shared `?range=1d|7d` parsing for the dashboard stats panels — each
- * panel toggles its own range independently (spec: per-panel, not a
- * single shared dashboard-wide filter).
+ * Shared `?range=last_run|1d|7d` parsing for the dashboard stats panels —
+ * each panel toggles its own range independently (spec: per-panel, not a
+ * single shared dashboard-wide filter). Anything unrecognized falls back
+ * to 1d.
+ *
+ * last_run is the most recent Run's started_at..ended_at window (or
+ * started_at..now while it's still going). Work done outside a run —
+ * a manual "Run site" from the admin page, the standalone confirmation
+ * scan — falls outside that window by design and only shows up in the
+ * day ranges. With no runs yet, last_run matches nothing.
  */
 final class StatsRange
 {
-    public static function since(Request $request): Carbon
-    {
-        $days = $request->query('range') === '7d' ? 7 : 1;
+    public const RANGES = ['last_run', '1d', '7d'];
 
-        return Carbon::now()->subDays($days);
+    private function __construct(
+        public readonly string $range,
+        public readonly ?Carbon $since,
+        public readonly ?Carbon $until,
+        public readonly ?Run $run,
+    ) {}
+
+    public static function fromRequest(Request $request): self
+    {
+        $range = $request->query('range');
+
+        if ($range === 'last_run') {
+            $run = Run::latest('started_at')->latest('id')->first();
+
+            return new self('last_run', $run?->started_at, $run ? ($run->ended_at ?? Carbon::now()) : null, $run);
+        }
+
+        $days = $range === '7d' ? 7 : 1;
+
+        return new self($days === 7 ? '7d' : '1d', Carbon::now()->subDays($days), null, null);
+    }
+
+    /**
+     * True when the range is last_run but there's no run to scope to —
+     * callers should return an empty result rather than query.
+     */
+    public function isEmpty(): bool
+    {
+        return $this->range === 'last_run' && $this->run === null;
+    }
+
+    /**
+     * Constrain $query's $column to this range's window.
+     *
+     * @template TQuery of Builder
+     *
+     * @param  TQuery  $query
+     * @return TQuery
+     */
+    public function apply(Builder $query, string $column): Builder
+    {
+        if ($this->isEmpty()) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        $query->where($column, '>=', $this->since);
+
+        if ($this->until !== null) {
+            $query->where($column, '<=', $this->until);
+        }
+
+        return $query;
+    }
+
+    /**
+     * @return array{range: string, since: ?string, until: ?string, run_id: ?int}
+     */
+    public function meta(): array
+    {
+        return [
+            'range' => $this->range,
+            'since' => $this->since?->toIso8601String(),
+            'until' => $this->until?->toIso8601String(),
+            'run_id' => $this->run?->id,
+        ];
     }
 }

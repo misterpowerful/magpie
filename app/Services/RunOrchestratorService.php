@@ -15,6 +15,7 @@ use App\Models\Run;
 use App\Models\Site;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -51,6 +52,21 @@ final class RunOrchestratorService
     public function run(string $trigger): Run
     {
         $run = Run::create(['trigger' => $trigger, 'status' => 'running', 'started_at' => Carbon::now()]);
+
+        // Every LlmCall recorded while this run is executing gets tagged
+        // with it (CliLlmDriver reads this), so per-run cost is exact
+        // rather than inferred from overlapping timestamps.
+        Context::add('run_id', $run->id);
+
+        try {
+            return $this->execute($run);
+        } finally {
+            Context::forget('run_id');
+        }
+    }
+
+    private function execute(Run $run): Run
+    {
         $stats = [];
 
         $user = User::where('email', config('magpie.admin_email'))->first();

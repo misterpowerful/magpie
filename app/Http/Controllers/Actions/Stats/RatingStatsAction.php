@@ -18,27 +18,31 @@ final class RatingStatsAction
 {
     public function __invoke(Request $request): JsonResponse
     {
-        $since = StatsRange::since($request);
+        $range = StatsRange::fromRequest($request);
         $userId = $request->user()->id;
 
-        $rated = DB::table('listings')
-            ->join('listing_scores', 'listing_scores.listing_id', '=', 'listings.id')
-            ->where('listings.user_id', $userId)
-            ->where('listings.first_seen_at', '>=', $since)
+        $rated = $range->apply(
+            DB::table('listings')
+                ->join('listing_scores', 'listing_scores.listing_id', '=', 'listings.id')
+                ->where('listings.user_id', $userId),
+            'listings.first_seen_at',
+        )
             ->select('listing_scores.rating', DB::raw('count(*) as count'))
             ->groupBy('listing_scores.rating')
             ->pluck('count', 'rating');
 
-        $unscored = Listing::where('user_id', $userId)
-            ->where('first_seen_at', '>=', $since)
+        $unscored = $range->apply(Listing::where('user_id', $userId), 'first_seen_at')
             ->whereDoesntHave('score')
             ->count();
 
-        return response()->json(['data' => [
-            'Strong' => (int) ($rated['Strong'] ?? 0),
-            'Moderate' => (int) ($rated['Moderate'] ?? 0),
-            'Weak' => (int) ($rated['Weak'] ?? 0),
-            'Unscored' => $unscored,
-        ]]);
+        return response()->json([
+            'data' => [
+                'Strong' => (int) ($rated['Strong'] ?? 0),
+                'Moderate' => (int) ($rated['Moderate'] ?? 0),
+                'Weak' => (int) ($rated['Weak'] ?? 0),
+                'Unscored' => $unscored,
+            ],
+            'meta' => $range->meta(),
+        ]);
     }
 }

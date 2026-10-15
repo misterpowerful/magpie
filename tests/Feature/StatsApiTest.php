@@ -6,6 +6,7 @@ use App\Models\Listing;
 use App\Models\ListingScore;
 use App\Models\ListingSource;
 use App\Models\LlmCall;
+use App\Models\Run;
 use App\Models\Site;
 use App\Models\User;
 
@@ -111,5 +112,90 @@ test('usage stats sum cost and tokens across llm_calls in range, independent of 
         'cost_usd' => 0.13,
         'input_tokens' => 300,
         'output_tokens' => 125,
+    ]);
+});
+
+test('last_run scopes listings to the latest run window and reports it in meta', function () {
+    $user = User::factory()->create();
+
+    Run::factory()->create(['started_at' => now()->subDays(2), 'ended_at' => now()->subDays(2)->addMinutes(10)]);
+    $latest = Run::factory()->create(['started_at' => now()->subHours(3), 'ended_at' => now()->subHours(2)]);
+
+    $inRun = Listing::factory()->for($user)->create(['first_seen_at' => now()->subHours(3)->addMinutes(5)]);
+    makeScore($inRun, 'Strong');
+
+    // Within the 1d range, but after the run finished (e.g. a manual site run).
+    Listing::factory()->for($user)->create(['first_seen_at' => now()->subHour()]);
+
+    $response = $this->actingAs($user)->getJson('/api/stats/ratings?range=last_run')->assertOk();
+
+    expect($response->json('data'))->toBe(['Strong' => 1, 'Moderate' => 0, 'Weak' => 0, 'Unscored' => 0]);
+    expect($response->json('meta.range'))->toBe('last_run');
+    expect($response->json('meta.run_id'))->toBe($latest->id);
+});
+
+test('last_run with no runs yet returns empty stats rather than everything', function () {
+    $user = User::factory()->create();
+    Listing::factory()->for($user)->create(['first_seen_at' => now()->subHour()]);
+    LlmCall::create([
+        'context' => 'generic', 'model' => 'claude-sonnet-5', 'cost_usd' => 0.05,
+        'duration_ms' => 1000, 'outcome' => 'ok', 'created_at' => now()->subHour(),
+    ]);
+
+    $this->actingAs($user)->getJson('/api/stats/ratings?range=last_run')->assertOk()
+        ->assertJsonPath('data.Unscored', 0)
+        ->assertJsonPath('meta.run_id', null);
+    $this->actingAs($user)->getJson('/api/stats/usage?range=last_run')->assertOk()
+        ->assertJsonPath('data.calls', 0);
+    $this->actingAs($user)->getJson('/api/stats/sources?range=last_run')->assertOk()
+        ->assertJsonCount(0, 'data');
+});
+
+test('source stats roll each source up into the email, feeds, or browser tile', function () {
+    $user = User::factory()->create();
+    $rss = Site::factory()->for($user)->create(['name' => 'Remotive', 'driver' => 'rss']);
+    $api = Site::factory()->for($user)->create(['name' => 'Remote OK', 'driver' => 'api']);
+    $browser = Site::factory()->for($user)->create(['name' => 'LinkedIn', 'driver' => 'browser']);
+
+    foreach ([$rss->id, $rss->id, $api->id, $browser->id, null] as $siteId) {
+        $listing = Listing::factory()->for($user)->create(['first_seen_at' => now()->subHour()]);
+        ListingSource::create(['listing_id' => $listing->id, 'site_id' => $siteId, 'first_seen_at' => now()->subHour()]);
+    }
+
+    $response = $this->actingAs($user)->getJson('/api/stats/sources')->assertOk();
+
+    expect($response->json('buckets'))->toBe(['email' => 1, 'feeds' => 3, 'browser' => 1]);
+    expect(collect($response->json('data'))->firstWhere('source', 'Remotive'))
+        ->toBe(['source' => 'Remotive', 'bucket' => 'feeds', 'count' => 2]);
+});
+
+test('source buckets are all present even when a tile has nothing in range', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->getJson('/api/stats/sources')->assertOk()
+        ->assertJsonPath('buckets', ['email' => 0, 'feeds' => 0, 'browser' => 0]);
+});
+
+test('last_run usage counts only calls tagged with that run, not ones that merely overlap it', function () {
+    $run = Run::factory()->create(['started_at' => now()->subHours(3), 'ended_at' => now()->subHours(2)]);
+
+    LlmCall::create([
+        'run_id' => $run->id, 'context' => 'listing:1', 'model' => 'claude-sonnet-5', 'input_tokens' => 100,
+        'output_tokens' => 50, 'cost_usd' => 0.05, 'duration_ms' => 1000, 'outcome' => 'ok', 'created_at' => now()->subHours(3),
+    ]);
+    // Same time window, but not part of the run (e.g. an ad-hoc command).
+    LlmCall::create([
+        'context' => 'generic', 'model' => 'claude-sonnet-5', 'input_tokens' => 999,
+        'output_tokens' => 999, 'cost_usd' => 1.00, 'duration_ms' => 1000, 'outcome' => 'ok', 'created_at' => now()->subHours(3),
+    ]);
+
+    $user = User::factory()->create();
+    $response = $this->actingAs($user)->getJson('/api/stats/usage?range=last_run')->assertOk();
+
+    expect($response->json('data'))->toBe([
+        'calls' => 1,
+        'cost_usd' => 0.05,
+        'input_tokens' => 100,
+        'output_tokens' => 50,
     ]);
 });

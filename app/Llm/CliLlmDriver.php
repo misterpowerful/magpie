@@ -9,6 +9,7 @@ use App\Models\Listing;
 use App\Models\LlmCall;
 use App\Models\Preference;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 
@@ -168,6 +169,7 @@ final class CliLlmDriver implements LlmDriver
         ]);
 
         LlmCall::create([
+            'run_id' => Context::get('run_id'),
             'context' => $context,
             'model' => $model,
             'input_tokens' => $usage['input_tokens'] ?? null,

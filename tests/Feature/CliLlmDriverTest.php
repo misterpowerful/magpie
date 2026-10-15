@@ -137,3 +137,19 @@ test('genuinely invalid score JSON still throws, fence or no fence', function ()
 
     (new CliLlmDriver)->score(Listing::factory()->make(), Preference::factory()->make());
 })->throws(LlmDriverException::class);
+
+test('a call made during a pipeline run is tagged with that run', function () {
+    Process::fake([
+        '*' => Process::result(output: json_encode(['is_error' => false, 'result' => 'ok', 'total_cost_usd' => 0.01]), exitCode: 0),
+    ]);
+
+    $run = \App\Models\Run::factory()->create();
+    \Illuminate\Support\Facades\Context::add('run_id', $run->id);
+
+    (new CliLlmDriver)->complete('hello', 'claude-haiku-4-5-20251001');
+
+    \Illuminate\Support\Facades\Context::forget('run_id');
+    (new CliLlmDriver)->complete('hello', 'claude-haiku-4-5-20251001');
+
+    expect(LlmCall::orderBy('id')->pluck('run_id')->all())->toBe([$run->id, null]);
+});

@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
  * the API" — a usage-trend proxy, not a real charge.
  */
 #[Fillable([
+    'run_id',
     'context',
     'model',
     'input_tokens',

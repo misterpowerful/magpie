@@ -250,3 +250,29 @@ test('a broadcasting failure (e.g. Reverb unreachable) never fails the run itsel
 
     expect($run->status)->toBe('done');
 });
+
+test('LLM calls during a run see its run_id, and it is cleared once the run ends', function () {
+    $user = makeAdminUser();
+    Preference::factory()->create(['user_id' => $user->id]);
+    Http::fake(['example.com/*' => Http::response('<html><body><h1>Senior PHP Engineer</h1><p>'.str_repeat('Remote PHP and Laravel role. ', 10).'</p></body></html>', 200)]);
+    Listing::factory()->for($user)->create(['state' => 'new', 'title' => 'Senior PHP Engineer', 'location_text' => null, 'remote_type' => 'remote']);
+
+    $driver = new class('Strong') extends FakeLlmDriver
+    {
+        /** @var array<int, mixed> */
+        public array $seenRunIds = [];
+
+        public function score(Listing $listing, Preference $preferences): ScoreResult
+        {
+            $this->seenRunIds[] = \Illuminate\Support\Facades\Context::get('run_id');
+
+            return parent::score($listing, $preferences);
+        }
+    };
+    $this->app->instance(LlmDriver::class, $driver);
+
+    $run = app(RunOrchestratorService::class)->run('schedule');
+
+    expect($driver->seenRunIds)->toBe([$run->id]);
+    expect(\Illuminate\Support\Facades\Context::get('run_id'))->toBeNull();
+});
