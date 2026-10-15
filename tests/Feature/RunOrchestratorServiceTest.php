@@ -235,3 +235,18 @@ test('each completed stage broadcasts a RunProgressUpdated event', function () {
             && $event->status === 'done';
     });
 });
+
+test('a broadcasting failure (e.g. Reverb unreachable) never fails the run itself', function () {
+    Event::listen(RunProgressUpdated::class, function () {
+        throw new RuntimeException('simulated broadcast failure');
+    });
+
+    $user = makeAdminUser();
+    Preference::factory()->create(['user_id' => $user->id]);
+
+    $this->app->instance(LlmDriver::class, new FakeLlmDriver);
+
+    $run = app(RunOrchestratorService::class)->run('schedule');
+
+    expect($run->status)->toBe('done');
+});

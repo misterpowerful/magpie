@@ -122,7 +122,14 @@ final class RunOrchestratorService
             ->whereIn('state', ['new', 'fetched', 'filtered_in'])
             ->count();
 
-        event(new RunProgressUpdated($user->id, $run->id, $status, $stats, $backlog));
+        // The live dashboard update is a nice-to-have on top of the run
+        // itself (spec section 9/10) — Reverb being unreachable must
+        // never fail the run that's broadcasting progress about.
+        try {
+            event(new RunProgressUpdated($user->id, $run->id, $status, $stats, $backlog));
+        } catch (Throwable $e) {
+            Log::warning('Broadcasting run progress failed', ['run_id' => $run->id, 'error' => $e->getMessage()]);
+        }
     }
 
     /**
