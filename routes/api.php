@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Actions\Auth\CurrentUserAction;
 use App\Http\Controllers\Actions\Health\PingAction;
+use App\Http\Controllers\Actions\Insights\CostInsightsAction;
+use App\Http\Controllers\Actions\Insights\RatingInsightsAction;
+use App\Http\Controllers\Actions\Insights\SourceInsightsAction;
 use App\Http\Controllers\Actions\Listings\IndexListingsAction;
 use App\Http\Controllers\Actions\Listings\UpdateListingStatusAction;
 use App\Http\Controllers\Actions\Runs\IndexRunsAction;
@@ -30,6 +33,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/sources', SourceStatsAction::class);
         Route::get('/ratings', RatingStatsAction::class);
         Route::get('/usage', UsageStatsAction::class);
+    });
+
+    Route::prefix('insights')->group(function () {
+        Route::get('/cost', CostInsightsAction::class);
+        Route::get('/sources', SourceInsightsAction::class);
+        Route::get('/ratings', RatingInsightsAction::class);
     });
 
     Route::prefix('admin')->group(function () {

@@ -6,11 +6,12 @@ namespace App\Support;
 
 use App\Models\Run;
 use Illuminate\Contracts\Database\Query\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 /**
- * Shared `?range=last_run|1d|7d` parsing for the dashboard stats panels —
+ * Shared `?range=last_run|1d|7d|30d` parsing for the dashboard stats panels —
  * each panel toggles its own range independently (spec: per-panel, not a
  * single shared dashboard-wide filter). Anything unrecognized falls back
  * to 1d.
@@ -23,7 +24,9 @@ use Illuminate\Support\Carbon;
  */
 final class StatsRange
 {
-    public const RANGES = ['last_run', '1d', '7d'];
+    public const RANGES = ['last_run', '1d', '7d', '30d'];
+
+    private const DAYS = ['1d' => 1, '7d' => 7, '30d' => 30];
 
     private function __construct(
         public readonly string $range,
@@ -42,9 +45,9 @@ final class StatsRange
             return new self('last_run', $run?->started_at, $run ? ($run->ended_at ?? Carbon::now()) : null, $run);
         }
 
-        $days = $range === '7d' ? 7 : 1;
+        $range = is_string($range) && isset(self::DAYS[$range]) ? $range : '1d';
 
-        return new self($days === 7 ? '7d' : '1d', Carbon::now()->subDays($days), null, null);
+        return new self($range, Carbon::now()->subDays(self::DAYS[$range]), null, null);
     }
 
     /**
@@ -77,6 +80,21 @@ final class StatsRange
         }
 
         return $query;
+    }
+
+    /**
+     * The runs this range covers, oldest first: just the latest one for
+     * last_run, otherwise every run that started within the window.
+     *
+     * @return Collection<int, Run>
+     */
+    public function runs(): Collection
+    {
+        if ($this->range === 'last_run') {
+            return $this->run ? new Collection([$this->run]) : new Collection;
+        }
+
+        return Run::where('started_at', '>=', $this->since)->orderBy('started_at')->orderBy('id')->get();
     }
 
     /**

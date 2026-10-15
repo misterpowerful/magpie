@@ -2,7 +2,7 @@
 export type StatsRange = 'last_run' | '7d'
 
 export interface StatsMeta {
-    range: StatsRange | '1d'
+    range: StatsRange | '1d' | '30d'
     since: string | null
     until: string | null
     run_id: number | null

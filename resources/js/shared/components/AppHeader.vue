@@ -8,6 +8,7 @@ const router = useRouter()
 
 const navLinks = [
     { label: 'Dashboard', name: 'dashboard' },
+    { label: 'Insights', name: 'insights' },
     { label: 'Sites', name: 'admin-sites' },
 ]
 

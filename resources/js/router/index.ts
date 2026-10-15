@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/features/auth/stores/auth'
 import LoginView from '@/features/auth/views/LoginView.vue'
 import DashboardView from '@/features/listings/views/DashboardView.vue'
+import InsightsView from '@/features/insights/views/InsightsView.vue'
 import AdminSitesView from '@/features/sites/views/AdminSitesView.vue'
 
 declare module 'vue-router' {
@@ -16,6 +17,7 @@ const router = createRouter({
     routes: [
         { path: '/login', name: 'login', component: LoginView, meta: { guestOnly: true } },
         { path: '/', name: 'dashboard', component: DashboardView, meta: { requiresAuth: true } },
+        { path: '/insights', name: 'insights', component: InsightsView, meta: { requiresAuth: true } },
         { path: '/admin/sites', name: 'admin-sites', component: AdminSitesView, meta: { requiresAuth: true } },
     ],
 })

@@ -1,3 +1,4 @@
+import { ratingColors } from '@/shared/charts/palette'
 import type { RatingStats, StatsMeta, StatsRange } from '../types'
 
 export const rangeLabels: Record<StatsRange, string> = {
@@ -5,15 +6,12 @@ export const rangeLabels: Record<StatsRange, string> = {
     '7d': '7 days',
 }
 
-/**
- * Same hues as the listings table's ratingBadgeClass, so the donut's
- * legend reads as the same thing as the badges below it.
- */
+/** Same ordinal teal ramp as the Insights charts (see shared/charts/palette). */
 export const ratingSegments: { key: keyof RatingStats; label: string; color: string }[] = [
-    { key: 'Strong', label: 'Strong', color: '#4ade80' },
-    { key: 'Moderate', label: 'Medium', color: '#fbbf24' },
-    { key: 'Weak', label: 'Weak', color: '#a1a1aa' },
-    { key: 'Unscored', label: 'Unscored', color: '#3f3f46' },
+    { key: 'Strong', label: 'Strong', color: ratingColors.Strong },
+    { key: 'Moderate', label: 'Medium', color: ratingColors.Moderate },
+    { key: 'Weak', label: 'Weak', color: ratingColors.Weak },
+    { key: 'Unscored', label: 'Unscored', color: ratingColors.Unscored },
 ]
 
 /** The tile's small sub-line: when the range covers, or why it's empty. */
@@ -31,7 +29,7 @@ export function describeRange(meta: StatsMeta | undefined): string {
         })
     }
 
-    return meta.range === '7d' ? 'Past 7 days' : 'Past 24 hours'
+    return { '1d': 'Past 24 hours', '7d': 'Past 7 days', '30d': 'Past 30 days' }[meta.range]
 }
 
 export const numberFormat = new Intl.NumberFormat()

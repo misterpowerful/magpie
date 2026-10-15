@@ -57,3 +57,15 @@
     border-radius: 9999px !important;
     box-shadow: none !important;
 }
+
+/*
+ * Quasar's (unlayered) .flex also sets flex-wrap: wrap, which beats
+ * Tailwind's layered utilities. On a Tailwind column stack that makes
+ * the column as wide as its widest child's natural width (e.g. a table
+ * inside an overflow-x-auto box) instead of its container, so pages
+ * overflow on phones. Quasar's own components use .column, not
+ * .flex-col, so this only touches Tailwind stacks.
+ */
+.flex.flex-col {
+    flex-wrap: nowrap;
+}

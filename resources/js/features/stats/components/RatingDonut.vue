@@ -33,7 +33,7 @@ function share(count: number): string {
 </script>
 
 <template>
-    <div class="flex items-center gap-5">
+    <div class="flex flex-nowrap! items-center gap-5">
         <svg viewBox="0 0 100 100" class="size-24 shrink-0" role="img" :aria-label="`${total} listings by rating`">
             <g transform="rotate(-90 50 50)">
                 <circle cx="50" cy="50" :r="RADIUS" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="12" />
@@ -62,7 +62,7 @@ function share(count: number): string {
         </svg>
 
         <ul class="m-0 flex min-w-0 flex-1 list-none flex-col gap-1 p-0 text-sm">
-            <li v-for="arc in arcs" :key="arc.key" class="flex items-center gap-2">
+            <li v-for="arc in arcs" :key="arc.key" class="flex flex-nowrap! items-center gap-2">
                 <span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: arc.color }" />
                 <span class="text-zinc-400">{{ arc.label }}</span>
                 <span class="ml-auto tabular-nums text-zinc-100">{{ numberFormat.format(arc.count) }}</span>

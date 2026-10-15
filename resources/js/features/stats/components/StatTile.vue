@@ -68,7 +68,7 @@ function open() {
         @keydown.left.prevent="!disabled && step(-1)"
         @keydown.right.prevent="!disabled && step(1)"
     >
-        <div class="flex items-center justify-between">
+        <div class="flex flex-nowrap! items-center justify-between">
             <span class="text-sm font-medium text-zinc-400">{{ title }}</span>
             <q-icon :name="icon" size="18px" class="text-zinc-500" />
         </div>
@@ -81,7 +81,7 @@ function open() {
             </Transition>
         </div>
 
-        <div v-if="!disabled" class="flex gap-1" role="tablist" aria-label="Range">
+        <div v-if="!disabled" class="flex flex-nowrap! gap-1" role="tablist" aria-label="Range">
             <button
                 v-for="r in ranges"
                 :key="r"
