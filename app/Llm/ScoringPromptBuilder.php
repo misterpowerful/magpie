@@ -25,8 +25,9 @@ final class ScoringPromptBuilder
     {
         $instructions = <<<'TEXT'
             You are screening a job posting against a candidate's resume and
-            preferences. Respond with ONLY a single JSON object, no prose
-            outside it, matching exactly this shape:
+            preferences. Respond with ONLY a single JSON object — no prose,
+            no markdown code fence (no ```), nothing before or after it —
+            matching exactly this shape:
 
             {"rating": "Strong"|"Moderate"|"Weak", "reasons": ["short reason", ...], "flags": ["short flag", ...], "commentary": "1-2 sentences, or null"}
 

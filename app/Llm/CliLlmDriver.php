@@ -106,7 +106,7 @@ final class CliLlmDriver implements LlmDriver
      */
     private function parseScoreJson(string $text): array
     {
-        $json = json_decode(trim($text), true);
+        $json = json_decode($this->stripCodeFence($text), true);
 
         if (! is_array($json) || ! isset($json['rating']) || ! in_array($json['rating'], ScoreResult::RATINGS, true)) {
             throw new LlmDriverException("Model did not return a valid score JSON: {$text}");
@@ -125,6 +125,22 @@ final class CliLlmDriver implements LlmDriver
             'flags' => array_values((array) ($json['flags'] ?? [])),
             'commentary' => $commentary,
         ];
+    }
+
+    /**
+     * The prompt explicitly asks for no markdown code fence, but models
+     * don't always comply — strip a leading/trailing ```json ... ```
+     * or ``` ... ``` wrapper if the model added one anyway.
+     */
+    private function stripCodeFence(string $text): string
+    {
+        $trimmed = trim($text);
+
+        if (preg_match('/^```(?:json)?\s*(.*?)\s*```$/is', $trimmed, $matches) === 1) {
+            return trim($matches[1]);
+        }
+
+        return $trimmed;
     }
 
     private function looksRateLimited(string $text): bool
