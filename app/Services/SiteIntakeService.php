@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Intake\IntakeDriver;
 use App\Intake\IntakeDriverRegistry;
 use App\Models\Site;
+use App\Support\PageAccess;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Carbon;
@@ -27,6 +28,7 @@ final class SiteIntakeService
     public function __construct(
         private readonly IntakeDriverRegistry $registry,
         private readonly ListingIntakeService $listingIntake,
+        private readonly PageAccess $pageAccess,
     ) {}
 
     /**
@@ -36,20 +38,23 @@ final class SiteIntakeService
     {
         try {
             $driver = $this->registry->resolve($site);
-            $stubs = $driver->fetch($site);
-
-            foreach ($stubs as $stub) {
-                $this->listingIntake->firstOrCreateFromStub($site->user_id, $stub, $site->id);
-            }
-
-            $this->markOk($site);
-
-            return count($stubs);
         } catch (Throwable $e) {
             $this->markFailed($site, $e);
 
             return 0;
         }
+
+        // Same fetch the pooled path makes, so a single "Run now" and a
+        // scheduled run judge the response identically.
+        try {
+            $response = Http::withHeaders($driver->headers())
+                ->timeout((int) config('magpie.run.intake_timeout_seconds'))
+                ->get($site->url);
+        } catch (Throwable $e) {
+            $response = $e;
+        }
+
+        return $this->processPooledResponse($site, $driver, $response);
     }
 
     /**
@@ -113,6 +118,20 @@ final class SiteIntakeService
                 throw $response;
             }
 
+            // An html page that has grown a login wall, bot check or
+            // JS-only rendering since it was added would otherwise just
+            // parse to zero listings, indistinguishable from "no jobs
+            // today". Feeds and APIs aren't pages, so they're not judged.
+            if ($site->driver === 'html') {
+                $access = $this->pageAccess->assess($response);
+
+                if ($access['verdict'] === PageAccess::NEEDS_BROWSER) {
+                    $this->markNeedsLogin($site, $access['reason']);
+
+                    return 0;
+                }
+            }
+
             $response->throw();
 
             $stubs = $driver->parse($site, $response);
@@ -134,6 +153,13 @@ final class SiteIntakeService
     private function markOk(Site $site): void
     {
         $site->update(['last_run_at' => Carbon::now(), 'last_status' => 'ok']);
+    }
+
+    private function markNeedsLogin(Site $site, ?string $reason): void
+    {
+        Log::warning('Site now needs a browser', ['site_id' => $site->id, 'site' => $site->name, 'reason' => $reason]);
+
+        $site->update(['last_run_at' => Carbon::now(), 'last_status' => 'needs_login']);
     }
 
     private function markFailed(Site $site, Throwable $e): void

@@ -118,3 +118,52 @@ test('runMany still records an unresolvable adapter as an error without crashing
     $site->refresh();
     expect($site->last_status)->toBe('error');
 });
+
+/**
+ * @return array<string, mixed>
+ */
+function htmlSiteConfig(): array
+{
+    return [
+        'adapter' => 'html',
+        'selectors' => ['list_item' => "//div[@class='job']", 'link' => './/a/@href', 'title' => './/a'],
+    ];
+}
+
+test('an html site that has grown a login wall is marked needs_login, not ok with zero listings', function () {
+    Http::fake(['careers.example.com/*' => Http::response('<html><body>Forbidden</body></html>', 403)]);
+    $site = Site::factory()->create(['driver' => 'html', 'url' => 'https://careers.example.com/jobs', 'config' => htmlSiteConfig()]);
+
+    expect(app(SiteIntakeService::class)->run($site))->toBe(0);
+    expect($site->fresh()->last_status)->toBe('needs_login');
+});
+
+test('runMany also flags an html site behind bot protection as needs_login', function () {
+    Http::fake(['careers.example.com/*' => Http::response('<html><head><title>Just a moment...</title></head><body></body></html>', 503)]);
+    $site = Site::factory()->create(['driver' => 'html', 'url' => 'https://careers.example.com/jobs', 'config' => htmlSiteConfig()]);
+
+    app(SiteIntakeService::class)->runMany(collect([$site]));
+
+    expect($site->fresh()->last_status)->toBe('needs_login');
+});
+
+test('a readable html site still parses listings and is marked ok', function () {
+    $page = '<html><body>'.str_repeat('<p>About our company and how we work.</p>', 10)
+        .'<div class="job"><a href="/jobs/1">Senior PHP Engineer</a></div></body></html>';
+    Http::fake(['careers.example.com/*' => Http::response($page, 200)]);
+    $site = Site::factory()->create(['driver' => 'html', 'url' => 'https://careers.example.com/jobs', 'config' => htmlSiteConfig()]);
+
+    expect(app(SiteIntakeService::class)->run($site))->toBe(1);
+    expect($site->fresh()->last_status)->toBe('ok');
+});
+
+test('an html site saved with selectors but no adapter key still resolves to the html driver', function () {
+    $page = '<html><body>'.str_repeat('<p>About our company and how we work.</p>', 10)
+        .'<div class="job"><a href="/jobs/1">Senior PHP Engineer</a></div></body></html>';
+    Http::fake(['careers.example.com/*' => Http::response($page, 200)]);
+    $config = htmlSiteConfig();
+    unset($config['adapter']);
+    $site = Site::factory()->create(['driver' => 'html', 'url' => 'https://careers.example.com/jobs', 'config' => $config]);
+
+    expect(app(SiteIntakeService::class)->run($site))->toBe(1);
+});

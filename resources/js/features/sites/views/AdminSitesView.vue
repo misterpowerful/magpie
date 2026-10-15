@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import api from '@/shared/lib/api'
 import AppHeader from '@/shared/components/AppHeader.vue'
-import { siteAdapters, siteColumns, siteDrivers } from '../constants'
+import { probeVerdicts, siteAdapters, siteColumns, siteDrivers } from '../constants'
 import { useSiteForm } from '../composables/useSiteForm'
 import type { Site } from '../types'
 
@@ -19,8 +19,21 @@ async function loadSites() {
     }
 }
 
-const { dialogOpen, editingId, form, errors, needsAdapter, openCreate, openEdit, save } =
-    useSiteForm(loadSites)
+const {
+    dialogOpen,
+    editingId,
+    form,
+    errors,
+    needsAdapter,
+    probing,
+    probeResult,
+    checkUrl,
+    applySuggestion,
+    useFeedUrl,
+    openCreate,
+    openEdit,
+    save,
+} = useSiteForm(loadSites)
 
 async function remove(site: Site) {
     await api.delete(`/api/admin/sites/${site.id}`)
@@ -62,14 +75,77 @@ onMounted(loadSites)
         </q-page-container>
 
         <q-dialog v-model="dialogOpen">
-            <q-card style="width: 420px" class="q-pa-sm">
+            <q-card style="width: 480px; max-width: 100%" class="q-pa-sm">
                 <q-card-section>
                     <div class="text-h6 text-zinc-100 text-weight-semibold">{{ editingId ? 'Edit site' : 'Add site' }}</div>
                 </q-card-section>
 
                 <q-card-section class="q-gutter-md">
                     <q-input v-model="form.name" label="Name" outlined dense :error="!!errors.name" :error-message="errors.name?.[0]" />
-                    <q-input v-model="form.url" label="URL" outlined dense :error="!!errors.url" :error-message="errors.url?.[0]" />
+                    <q-input
+                        v-model="form.url"
+                        label="URL"
+                        outlined
+                        dense
+                        :error="!!errors.url"
+                        :error-message="errors.url?.[0]"
+                        @keydown.enter.prevent="checkUrl"
+                    >
+                        <template #append>
+                            <q-btn
+                                flat
+                                dense
+                                no-caps
+                                label="Check"
+                                color="accent"
+                                :loading="probing"
+                                :disable="!form.url"
+                                @click="checkUrl"
+                            />
+                        </template>
+                    </q-input>
+
+                    <!-- What the server found at the URL, and which driver that means. -->
+                    <div
+                        v-if="probeResult"
+                        class="flex flex-nowrap! items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-3 text-sm"
+                        role="status"
+                    >
+                        <q-icon
+                            :name="probeVerdicts[probeResult.verdict].icon"
+                            size="20px"
+                            :class="probeVerdicts[probeResult.verdict].iconClass"
+                        />
+                        <div class="min-w-0 flex-1">
+                            <div class="font-medium text-zinc-100">{{ probeVerdicts[probeResult.verdict].label }}</div>
+                            <div class="text-zinc-400">{{ probeResult.reason }}</div>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                <q-btn
+                                    v-if="probeResult.feed_url"
+                                    size="sm"
+                                    outline
+                                    no-caps
+                                    color="accent"
+                                    label="Use the feed instead"
+                                    @click="useFeedUrl"
+                                />
+                                <q-btn
+                                    v-if="
+                                        editingId &&
+                                        probeResult.suggested_driver &&
+                                        probeResult.suggested_driver !== form.driver
+                                    "
+                                    size="sm"
+                                    outline
+                                    no-caps
+                                    color="accent"
+                                    :label="`Switch to ${probeResult.suggested_driver}`"
+                                    @click="applySuggestion"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     <q-select
                         v-model="form.driver"
                         :options="siteDrivers"
@@ -92,6 +168,18 @@ onMounted(loadSites)
                         :error="!!errors['config.adapter']"
                         :error-message="errors['config.adapter']?.[0]"
                     />
+                    <template v-if="form.driver === 'html'">
+                        <div class="text-xs text-zinc-400">
+                            XPath selectors for the job list. Link, title, company and location are relative to each list
+                            item. Use “Run now” after saving to test them.
+                        </div>
+                        <q-input v-model="form.selectors.list_item" label="List item (required)" placeholder="//div[@class='job']" outlined dense />
+                        <q-input v-model="form.selectors.link" label="Link (required)" placeholder=".//a/@href" outlined dense />
+                        <q-input v-model="form.selectors.title" label="Title (required)" placeholder=".//h2" outlined dense />
+                        <q-input v-model="form.selectors.company" label="Company" outlined dense />
+                        <q-input v-model="form.selectors.location" label="Location" outlined dense />
+                    </template>
+
                     <q-toggle v-model="form.enabled" label="Enabled" />
                 </q-card-section>
 

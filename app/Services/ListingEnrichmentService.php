@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Listing;
-use App\Support\HtmlTextExtractor;
+use App\Support\PageAccess;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
@@ -20,20 +20,7 @@ use Illuminate\Support\Facades\Http;
  */
 final class ListingEnrichmentService
 {
-    /**
-     * Confident phrases a job posting page uses when it's gating the
-     * real content behind a sign-in — distinct from an empty JS shell,
-     * where there's barely any text to search at all.
-     */
-    private const LOGIN_WALL_PATTERNS = [
-        '/sign[\s-]*in\s+to\s+(view|continue|apply|see)/i',
-        '/log[\s-]*in\s+to\s+(view|continue|apply|see)/i',
-        '/create\s+a\s+(free\s+)?account\s+to\s+(view|continue|apply|see)/i',
-        '/you\s+must\s+be\s+(signed|logged)\s+in/i',
-        '/please\s+(sign|log)\s+in\s+to/i',
-    ];
-
-    public function __construct(private readonly HtmlTextExtractor $extractor) {}
+    public function __construct(private readonly PageAccess $pageAccess) {}
 
     public function enrich(Listing $listing): string
     {
@@ -43,38 +30,23 @@ final class ListingEnrichmentService
             return $this->markFailed($listing, "Connection error: {$e->getMessage()}");
         }
 
-        if (in_array($response->status(), [401, 403], true)) {
-            return $this->markNeedsBrowser($listing, "HTTP {$response->status()} — login required");
+        $access = $this->pageAccess->assess($response);
+
+        if ($access['verdict'] === PageAccess::NEEDS_BROWSER) {
+            return $this->markNeedsBrowser($listing, $access['reason']);
         }
 
-        if ($response->failed()) {
-            return $this->markFailed($listing, "HTTP {$response->status()}");
+        // A 404/5xx is the posting being gone or the site being down —
+        // a failure, not a reason to escalate to the browser tier.
+        if ($access['verdict'] === PageAccess::HTTP_ERROR) {
+            return $this->markFailed($listing, $access['reason']);
         }
 
-        $text = $this->extractor->extractText($response->body());
-
-        if ($this->looksLikeLoginWall($text)) {
-            return $this->markNeedsBrowser($listing, 'Page content indicates a sign-in wall');
-        }
-
-        if (mb_strlen($text) < (int) config('magpie.enrichment.min_body_length')) {
-            return $this->markNeedsBrowser($listing, 'Page body too short after stripping markup (likely a JS-rendered shell)');
-        }
+        $text = $access['text'];
 
         $listing->update(['raw_text' => $text, 'state' => 'fetched']);
 
         return 'fetched';
-    }
-
-    private function looksLikeLoginWall(string $text): bool
-    {
-        foreach (self::LOGIN_WALL_PATTERNS as $pattern) {
-            if (preg_match($pattern, $text) === 1) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private function markNeedsBrowser(Listing $listing, string $reason): string

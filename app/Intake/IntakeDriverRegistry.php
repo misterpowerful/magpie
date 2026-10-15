@@ -35,7 +35,9 @@ final class IntakeDriverRegistry
 
     public function resolve(Site $site): IntakeDriver
     {
-        $adapter = $site->config['adapter'] ?? null;
+        // html has exactly one adapter, so the driver alone is enough —
+        // a site saved from the form with just its selectors still runs.
+        $adapter = $site->config['adapter'] ?? ($site->driver === 'html' ? 'html' : null);
 
         if ($adapter === null || ! isset(self::ADAPTERS[$adapter])) {
             throw new RuntimeException("Site \"{$site->name}\" has no known adapter configured (config.adapter = ".json_encode($adapter).')');

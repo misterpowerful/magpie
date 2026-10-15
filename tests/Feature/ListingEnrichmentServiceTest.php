@@ -104,3 +104,21 @@ test('a connection failure marks the listing enrichment_failed', function () {
     expect($listing->state)->toBe('enrichment_failed');
     expect($listing->filter_reason)->toContain('Connection error');
 });
+
+test('a bot-protection challenge served as a 503 moves the listing to needs_browser, not enrichment_failed', function () {
+    Http::fake(['*' => Http::response('<html><head><title>Just a moment...</title></head><body></body></html>', 503)]);
+    $listing = Listing::factory()->create(['state' => 'new', 'canonical_url' => 'https://jobs.example.com/1']);
+
+    app(ListingEnrichmentService::class)->enrich($listing);
+
+    expect($listing->fresh()->state)->toBe('needs_browser');
+});
+
+test('a 404 posting is enrichment_failed, not needs_browser', function () {
+    Http::fake(['*' => Http::response('gone', 404)]);
+    $listing = Listing::factory()->create(['state' => 'new', 'canonical_url' => 'https://jobs.example.com/1']);
+
+    app(ListingEnrichmentService::class)->enrich($listing);
+
+    expect($listing->fresh()->state)->toBe('enrichment_failed');
+});
