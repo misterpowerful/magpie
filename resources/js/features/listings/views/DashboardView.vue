@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import api from '@/shared/lib/api'
 import { useAuthStore } from '@/features/auth/stores/auth'
 import AppHeader from '@/shared/components/AppHeader.vue'
+import StatsPanels from '@/features/stats/components/StatsPanels.vue'
 import { listingColumns, ratingBadgeClass, scoringOptions, statusTabs } from '../constants'
 import { useListingStatusDialog } from '../composables/useListingStatusDialog'
 import { useRunSummary } from '../composables/useRunSummary'
@@ -30,6 +31,12 @@ const filteredListings = computed(() =>
 )
 
 const { backlog, latestRun, load: loadRunSummary, subscribeToLiveUpdates } = useRunSummary(() => auth.user?.id)
+
+// Changes as a run starts, finishes each stage, and ends — the stat
+// tiles re-pull on each change so they track a run while it's going.
+const statsRefreshKey = computed(() =>
+    latestRun.value ? `${latestRun.value.id}:${latestRun.value.status}:${Object.keys(latestRun.value.stage_stats ?? {}).length}` : '',
+)
 
 async function loadListings() {
     loading.value = true
@@ -80,6 +87,8 @@ onMounted(() => {
                         Last run ({{ latestRun.trigger }}): {{ latestRun.status }}
                     </q-chip>
                 </div>
+
+                <StatsPanels :refresh-key="statsRefreshKey" class="q-mb-lg" />
 
                 <q-tabs
                     v-model="statusTab"
