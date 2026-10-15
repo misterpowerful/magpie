@@ -10,7 +10,7 @@ return [
         // 'cli' (Claude Code headless on the owner's plan) now; 'api' later.
         'driver' => env('MAGPIE_LLM_DRIVER', 'cli'),
         'scoring_model' => env('MAGPIE_LLM_SCORING_MODEL', 'claude-sonnet-5-5'),
-        'triage_model' => env('MAGPIE_LLM_TRIAGE_MODEL', 'claude-haiku-4-5-20251001'),
+        'triage_model' => env('MAGPIE_LLM_TRIAGE_MODEL', 'claude-haiku-5-5'),
         'cli_timeout' => env('MAGPIE_LLM_CLI_TIMEOUT', 120),
     ],
 
