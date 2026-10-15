@@ -18,4 +18,15 @@ interface MailSource
     public function fetchUnprocessed(): array;
 
     public function markProcessed(IncomingEmail $email): void;
+
+    /**
+     * Spec section 9's "deterministic confirmation matcher": a read-only
+     * scan of the owner's normal mail for application-confirmation
+     * emails, separate from the job-alert inbox_label above. Must never
+     * mark a message read or move it — the owner wants to still see
+     * these himself.
+     *
+     * @return array<int, IncomingEmail>
+     */
+    public function fetchForConfirmationScan(\DateTimeInterface $since): array;
 }

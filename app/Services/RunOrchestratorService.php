@@ -44,6 +44,7 @@ final class RunOrchestratorService
         private readonly ListingFilterService $filterService,
         private readonly ListingEnrichmentService $enrichmentService,
         private readonly ListingScoringService $scoringService,
+        private readonly ApplicationConfirmationService $confirmationService,
         private readonly Notifier $notifier,
     ) {}
 
@@ -95,6 +96,11 @@ final class RunOrchestratorService
 
                     return $run;
                 }
+            }
+
+            if ($this->withinBudget($globalDeadline)) {
+                $stats['confirmation_check'] = $this->timed(fn () => $this->runConfirmationCheckStage($user));
+                $this->broadcastProgress($run, $user, 'running', $stats);
             }
         } catch (Throwable $e) {
             Log::error('Run failed', ['run_id' => $run->id, 'error' => $e->getMessage()]);
@@ -200,6 +206,26 @@ final class RunOrchestratorService
         $siteStats = $sites->isEmpty() ? [] : $this->siteIntake->runMany($sites);
 
         return ['email' => $emailStats, 'sites' => $siteStats];
+    }
+
+    /**
+     * Spec section 9's "deterministic confirmation matcher": after the
+     * run has pulled in and scored this sweep's listings, check the
+     * owner's mail for application-confirmation emails and auto-mark
+     * the ones that match exactly one open listing. A mailbox hiccup
+     * here must never fail the run the scoring stage already completed.
+     *
+     * @return array{scanned: int, matched: int, ambiguous: int, no_match: int, not_confirmation: int, already_seen: int}|array{error: string}
+     */
+    private function runConfirmationCheckStage(User $user): array
+    {
+        try {
+            return $this->confirmationService->run($user->id);
+        } catch (Throwable $e) {
+            Log::error('Application-confirmation scan failed during run', ['error' => $e->getMessage()]);
+
+            return ['error' => $e->getMessage()];
+        }
     }
 
     /**

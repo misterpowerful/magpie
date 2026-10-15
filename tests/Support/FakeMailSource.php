@@ -12,6 +12,9 @@ class FakeMailSource implements MailSource
     /** @var array<int, IncomingEmail> */
     public array $emails = [];
 
+    /** @var array<int, IncomingEmail> */
+    public array $confirmationEmails = [];
+
     /** @var array<int, string> */
     public array $processedMessageIds = [];
 
@@ -23,5 +26,10 @@ class FakeMailSource implements MailSource
     public function markProcessed(IncomingEmail $email): void
     {
         $this->processedMessageIds[] = $email->messageId;
+    }
+
+    public function fetchForConfirmationScan(\DateTimeInterface $since): array
+    {
+        return $this->confirmationEmails;
     }
 }

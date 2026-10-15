@@ -51,6 +51,23 @@ final class ImapMailSource implements MailSource
         $message?->move(config('magpie.mail.processed_label'));
     }
 
+    public function fetchForConfirmationScan(\DateTimeInterface $since): array
+    {
+        $client = $this->connect();
+        $folder = $client->getFolderByName(config('magpie.mail.confirmation_folder'));
+
+        if ($folder === null) {
+            throw new \RuntimeException('IMAP folder "'.config('magpie.mail.confirmation_folder').'" not found.');
+        }
+
+        // leaveUnread() sets FT_PEEK so fetching the body never sets the
+        // \Seen flag — this scan must never change what the owner sees
+        // in his own inbox.
+        $messages = $folder->messages()->whereSince($since)->leaveUnread()->get();
+
+        return $messages->map(fn (Message $message) => $this->toIncomingEmail($message))->all();
+    }
+
     private function connect(): Client
     {
         $client = $this->manager->make([

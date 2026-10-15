@@ -6,7 +6,9 @@ namespace App\Llm;
 
 use App\Contracts\LlmDriver;
 use App\Models\Listing;
+use App\Models\LlmCall;
 use App\Models\Preference;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 
@@ -69,7 +71,7 @@ final class CliLlmDriver implements LlmDriver
         $durationMs = (int) round((microtime(true) - $started) * 1000);
 
         if (! $result->successful()) {
-            $this->log($context, $model, $durationMs, strlen($prompt), null, 'process_failed');
+            $this->record($context, $model, $durationMs, strlen($prompt), null, [], 'process_failed');
 
             if ($this->looksRateLimited($result->errorOutput())) {
                 throw new LlmRateLimitedException("claude CLI reported a rate/usage limit: {$result->errorOutput()}");
@@ -81,7 +83,7 @@ final class CliLlmDriver implements LlmDriver
         $envelope = json_decode($result->output(), true);
 
         if (! is_array($envelope) || ($envelope['is_error'] ?? true)) {
-            $this->log($context, $model, $durationMs, strlen($prompt), $envelope['total_cost_usd'] ?? null, 'cli_error');
+            $this->record($context, $model, $durationMs, strlen($prompt), $envelope['total_cost_usd'] ?? null, $envelope['usage'] ?? [], 'cli_error');
 
             $errorText = is_array($envelope) ? (string) ($envelope['result'] ?? '') : $result->output();
 
@@ -92,7 +94,7 @@ final class CliLlmDriver implements LlmDriver
             throw new LlmDriverException('claude CLI returned an error envelope: '.$result->output());
         }
 
-        $this->log($context, $model, $durationMs, strlen($prompt), $envelope['total_cost_usd'] ?? null, 'ok');
+        $this->record($context, $model, $durationMs, strlen($prompt), $envelope['total_cost_usd'] ?? null, $envelope['usage'] ?? [], 'ok');
 
         return [
             'result' => $envelope['result'] ?? '',
@@ -148,7 +150,13 @@ final class CliLlmDriver implements LlmDriver
         return (bool) preg_match('/\b(rate.?limit|usage.?limit|quota\s*exceeded|too\s*many\s*requests|429|overloaded)\b/i', $text);
     }
 
-    private function log(string $context, string $model, int $durationMs, int $promptChars, ?float $costUsd, string $outcome): void
+    /**
+     * @param  array<string, mixed>  $usage  the envelope's "usage" object (input_tokens,
+     *                                       output_tokens, cache_creation_input_tokens,
+     *                                       cache_read_input_tokens, ...), empty on a
+     *                                       process-level failure where no envelope exists
+     */
+    private function record(string $context, string $model, int $durationMs, int $promptChars, ?float $costUsd, array $usage, string $outcome): void
     {
         Log::channel('llm')->info('cli call', [
             'context' => $context,
@@ -157,6 +165,19 @@ final class CliLlmDriver implements LlmDriver
             'prompt_chars' => $promptChars,
             'cost_usd' => $costUsd,
             'outcome' => $outcome,
+        ]);
+
+        LlmCall::create([
+            'context' => $context,
+            'model' => $model,
+            'input_tokens' => $usage['input_tokens'] ?? null,
+            'output_tokens' => $usage['output_tokens'] ?? null,
+            'cache_creation_input_tokens' => $usage['cache_creation_input_tokens'] ?? null,
+            'cache_read_input_tokens' => $usage['cache_read_input_tokens'] ?? null,
+            'cost_usd' => $costUsd,
+            'duration_ms' => $durationMs,
+            'outcome' => $outcome,
+            'created_at' => Carbon::now(),
         ]);
     }
 }

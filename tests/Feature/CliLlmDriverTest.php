@@ -6,6 +6,7 @@ use App\Llm\CliLlmDriver;
 use App\Llm\LlmDriverException;
 use App\Llm\LlmRateLimitedException;
 use App\Models\Listing;
+use App\Models\LlmCall;
 use App\Models\Preference;
 use Illuminate\Support\Facades\Process;
 
@@ -58,6 +59,52 @@ test('a successful completion returns the raw result text', function () {
     ]);
 
     expect((new CliLlmDriver)->complete('hello', 'claude-haiku-4-5-20251001'))->toBe('the answer');
+});
+
+test('a successful call persists an LlmCall row with its token usage and cost', function () {
+    Process::fake([
+        '*' => Process::result(
+            output: json_encode([
+                'is_error' => false,
+                'result' => 'the answer',
+                'total_cost_usd' => 0.0123,
+                'usage' => [
+                    'input_tokens' => 10,
+                    'output_tokens' => 37,
+                    'cache_creation_input_tokens' => 500,
+                    'cache_read_input_tokens' => 0,
+                ],
+            ]),
+            exitCode: 0,
+        ),
+    ]);
+
+    (new CliLlmDriver)->complete('hello', 'claude-haiku-4-5-20251001');
+
+    expect(LlmCall::count())->toBe(1);
+
+    $call = LlmCall::first();
+    expect($call->context)->toBe('generic');
+    expect($call->model)->toBe('claude-haiku-4-5-20251001');
+    expect($call->input_tokens)->toBe(10);
+    expect($call->output_tokens)->toBe(37);
+    expect((float) $call->cost_usd)->toBe(0.0123);
+    expect($call->outcome)->toBe('ok');
+});
+
+test('a failed call still persists an LlmCall row, so failures show up in usage stats too', function () {
+    Process::fake([
+        '*' => Process::result(output: '', errorOutput: 'boom', exitCode: 1),
+    ]);
+
+    try {
+        (new CliLlmDriver)->complete('hello', 'claude-haiku-4-5-20251001');
+    } catch (LlmDriverException) {
+        // expected
+    }
+
+    expect(LlmCall::count())->toBe(1);
+    expect(LlmCall::first()->outcome)->toBe('process_failed');
 });
 
 test('a score response wrapped in a ```json code fence still parses correctly', function () {

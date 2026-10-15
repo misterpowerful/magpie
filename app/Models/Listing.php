@@ -80,6 +80,14 @@ class Listing extends Model
     }
 
     /**
+     * @return HasMany<ListingSource, $this>
+     */
+    public function sources(): HasMany
+    {
+        return $this->hasMany(ListingSource::class);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

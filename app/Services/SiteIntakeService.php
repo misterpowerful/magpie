@@ -39,7 +39,7 @@ final class SiteIntakeService
             $stubs = $driver->fetch($site);
 
             foreach ($stubs as $stub) {
-                $this->listingIntake->firstOrCreateFromStub($site->user_id, $stub);
+                $this->listingIntake->firstOrCreateFromStub($site->user_id, $stub, $site->id);
             }
 
             $this->markOk($site);
@@ -118,7 +118,7 @@ final class SiteIntakeService
             $stubs = $driver->parse($site, $response);
 
             foreach ($stubs as $stub) {
-                $this->listingIntake->firstOrCreateFromStub($site->user_id, $stub);
+                $this->listingIntake->firstOrCreateFromStub($site->user_id, $stub, $site->id);
             }
 
             $this->markOk($site);

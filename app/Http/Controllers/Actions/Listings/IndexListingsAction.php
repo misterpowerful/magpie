@@ -14,7 +14,11 @@ final class IndexListingsAction
     public function __invoke(Request $request): AnonymousResourceCollection
     {
         $listings = Listing::where('user_id', $request->user()->id)
-            ->orderByDesc('first_seen_at')
+            ->with(['score', 'salary', 'sources.site'])
+            ->leftJoin('listing_scores', 'listing_scores.listing_id', '=', 'listings.id')
+            ->select('listings.*')
+            ->orderByRaw("CASE listing_scores.rating WHEN 'Strong' THEN 0 WHEN 'Moderate' THEN 1 WHEN 'Weak' THEN 2 ELSE 3 END")
+            ->orderByDesc('listings.first_seen_at')
             ->paginate(25);
 
         return ListingResource::collection($listings);

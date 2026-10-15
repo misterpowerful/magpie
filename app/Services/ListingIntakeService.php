@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Listing;
+use App\Models\ListingSource;
 use App\Support\UrlCanonicalizer;
 use Illuminate\Support\Carbon;
 
@@ -15,9 +16,14 @@ final class ListingIntakeService
      * back to a company+title hash — the same job posted under a
      * different URL), or create a new stub.
      *
+     * $siteId is null for email-sourced stubs (there's no `sites` row
+     * for the mail intake). Spec section 4 "listing_sources" is recorded
+     * regardless of whether the listing itself is new, so a job posted
+     * on multiple sites shows every source that surfaced it.
+     *
      * @param  array{url: string, company?: ?string, title: string, location_text?: ?string, remote_type?: ?string, raw_text?: ?string}  $stub
      */
-    public function firstOrCreateFromStub(int $userId, array $stub): Listing
+    public function firstOrCreateFromStub(int $userId, array $stub, ?int $siteId = null): Listing
     {
         $canonicalUrl = UrlCanonicalizer::canonicalize($stub['url']);
         $contentHash = self::contentHash($stub['company'] ?? null, $stub['title']);
@@ -29,11 +35,7 @@ final class ListingIntakeService
             })
             ->first();
 
-        if ($existing) {
-            return $existing;
-        }
-
-        return Listing::create([
+        $listing = $existing ?? Listing::create([
             'user_id' => $userId,
             'canonical_url' => $canonicalUrl,
             'company' => $stub['company'] ?? null,
@@ -46,6 +48,13 @@ final class ListingIntakeService
             'status' => 'new',
             'first_seen_at' => Carbon::now(),
         ]);
+
+        ListingSource::firstOrCreate(
+            ['listing_id' => $listing->id, 'site_id' => $siteId],
+            ['first_seen_at' => Carbon::now()],
+        );
+
+        return $listing;
     }
 
     /**

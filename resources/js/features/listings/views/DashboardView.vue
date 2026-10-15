@@ -1,18 +1,33 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
 import api from '@/shared/lib/api'
 import { useAuthStore } from '@/features/auth/stores/auth'
-import { listingColumns } from '../constants'
+import AppHeader from '@/shared/components/AppHeader.vue'
+import { listingColumns, ratingBadgeClass, scoringOptions, statusTabs } from '../constants'
 import { useListingStatusDialog } from '../composables/useListingStatusDialog'
 import { useRunSummary } from '../composables/useRunSummary'
 import type { Listing } from '../types'
 
 const auth = useAuthStore()
-const router = useRouter()
 
 const listings = ref<Listing[]>([])
 const loading = ref(false)
+
+const statusTab = ref('new')
+const scoringFilter = ref<string[]>([])
+
+function matchesScoring(listing: Listing, value: string): boolean {
+    return value === 'unscored' ? !listing.score : listing.score?.rating === value
+}
+
+const filteredListings = computed(() =>
+    listings.value.filter((listing) => {
+        if (listing.status !== statusTab.value) return false
+        if (scoringFilter.value.length > 0 && !scoringFilter.value.some((value) => matchesScoring(listing, value))) return false
+
+        return true
+    }),
+)
 
 const { backlog, latestRun, load: loadRunSummary, subscribeToLiveUpdates } = useRunSummary(() => auth.user?.id)
 
@@ -40,11 +55,6 @@ const {
     confirm: confirmAction,
 } = useListingStatusDialog(applyUpdatedListing)
 
-async function logout() {
-    await auth.logout()
-    window.location.href = '/login'
-}
-
 onMounted(() => {
     loadListings()
     loadRunSummary()
@@ -54,36 +64,94 @@ onMounted(() => {
 
 <template>
     <q-layout view="hHh lpR fFf">
-        <q-header class="bg-primary text-white">
-            <q-toolbar>
-                <q-toolbar-title>Magpie 2.0</q-toolbar-title>
-                <q-btn flat label="Sites" @click="router.push({ name: 'admin-sites' })" />
-                <q-btn flat label="Log out" @click="logout" />
-            </q-toolbar>
-        </q-header>
+        <AppHeader />
 
         <q-page-container>
             <q-page class="q-pa-md">
-                <div class="row q-mb-md q-gutter-md items-center">
-                    <q-chip color="info" text-color="white" icon="hourglass_empty">
+                <div class="row q-mb-md q-gutter-sm items-center">
+                    <q-chip dense class="bg-white/10 text-zinc-300" icon="hourglass_empty">
                         Backlog: {{ backlog }} waiting
                     </q-chip>
-                    <q-chip v-if="latestRun" :color="latestRun.status === 'done' ? 'positive' : 'warning'" text-color="white">
+                    <q-chip
+                        v-if="latestRun"
+                        dense
+                        :class="latestRun.status === 'done' ? 'bg-green-500/15 text-green-400' : 'bg-amber-500/15 text-amber-400'"
+                    >
                         Last run ({{ latestRun.trigger }}): {{ latestRun.status }}
                     </q-chip>
                 </div>
 
-                <q-table
-                    :rows="listings"
-                    :columns="listingColumns"
-                    row-key="id"
-                    :loading="loading"
-                    flat
-                    bordered
+                <q-tabs
+                    v-model="statusTab"
+                    dense
+                    no-caps
+                    align="left"
+                    class="q-mb-md text-zinc-400"
+                    active-color="white"
+                    indicator-color="accent"
                 >
+                    <q-tab v-for="tab in statusTabs" :key="tab.value" :name="tab.value" :label="tab.label" />
+                </q-tabs>
+
+                <div class="row q-mb-md items-center">
+                    <q-select
+                        v-model="scoringFilter"
+                        :options="scoringOptions"
+                        option-value="value"
+                        option-label="label"
+                        emit-value
+                        map-options
+                        multiple
+                        use-chips
+                        dense
+                        outlined
+                        style="min-width: 240px"
+                        label="Scoring"
+                    />
+                </div>
+
+                <q-table :rows="filteredListings" :columns="listingColumns" row-key="id" :loading="loading" flat>
+                    <template #body-cell-rating="props">
+                        <q-td :props="props">
+                            <span
+                                v-if="props.row.score"
+                                class="inline-block rounded-full px-2 py-0.5 text-xs font-medium"
+                                :class="ratingBadgeClass[props.row.score.rating]"
+                            >
+                                {{ props.row.score.rating }}
+                            </span>
+                            <span v-else class="text-zinc-400">—</span>
+                        </q-td>
+                    </template>
+
+                    <template #body-cell-salary="props">
+                        <q-td :props="props">
+                            <span v-if="props.row.salary?.snippet">{{ props.row.salary.snippet }}</span>
+                            <span v-else class="text-zinc-400">unknown</span>
+                        </q-td>
+                    </template>
+
+                    <template #body-cell-flags="props">
+                        <q-td :props="props">
+                            <span
+                                v-for="(enabled, flag) in props.row.filter_flags"
+                                v-show="enabled"
+                                :key="flag"
+                                class="mr-1 inline-block rounded-full bg-white/10 px-2 py-0.5 text-xs text-zinc-300"
+                            >
+                                {{ flag }}
+                            </span>
+                        </q-td>
+                    </template>
+
                     <template #body-cell-title="props">
                         <q-td :props="props">
-                            <a :href="props.row.canonical_url" target="_blank" rel="noopener">{{ props.row.title }}</a>
+                            <a :href="props.row.canonical_url" target="_blank" rel="noopener" class="text-teal-400 hover:underline">{{
+                                props.row.title
+                            }}</a>
+                            <q-tooltip v-if="props.row.score?.commentary" max-width="400px">
+                                {{ props.row.score.commentary }}
+                            </q-tooltip>
                         </q-td>
                     </template>
 
@@ -92,6 +160,8 @@ onMounted(() => {
                             <q-btn
                                 v-if="props.row.status !== 'applied'"
                                 size="sm"
+                                no-caps
+                                unelevated
                                 color="positive"
                                 label="Applied"
                                 @click="openReasonDialog(props.row, 'applied')"
@@ -99,8 +169,9 @@ onMounted(() => {
                             <q-btn
                                 v-if="props.row.status !== 'not_interested'"
                                 size="sm"
+                                no-caps
+                                outline
                                 color="negative"
-                                flat
                                 label="Not interested"
                                 @click="openReasonDialog(props.row, 'not_interested')"
                             />
@@ -119,12 +190,12 @@ onMounted(() => {
                 </q-card-section>
 
                 <q-card-section>
-                    <q-input v-model="pendingAction.reason" label="Reason (optional)" type="textarea" autofocus />
+                    <q-input v-model="pendingAction.reason" label="Reason (optional)" type="textarea" outlined autofocus />
                 </q-card-section>
 
                 <q-card-actions align="right">
-                    <q-btn flat label="Cancel" v-close-popup />
-                    <q-btn color="primary" label="Confirm" @click="confirmAction" />
+                    <q-btn flat no-caps label="Cancel" v-close-popup />
+                    <q-btn color="primary" no-caps unelevated label="Confirm" @click="confirmAction" />
                 </q-card-actions>
             </q-card>
         </q-dialog>

@@ -11,3 +11,49 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/*
+ * shadcn-vue-inspired reskin of Quasar's stock Material look: flatten
+ * its default elevation shadows into thin borders, open up its corner
+ * radius, and mute its header/table chrome — same components, same
+ * behavior, just a quieter/neutral surface instead of Material blue +
+ * drop shadows everywhere. Body background/text color is NOT set here —
+ * Quasar's own dark-mode CSS (body.body--dark, from config.dark: true
+ * in app.ts) already handles that against the dark-page/dark brand
+ * vars set there.
+ */
+:root {
+    --radius: 0.5rem;
+}
+
+.q-card,
+.q-table__container,
+.q-field__control {
+    border-radius: var(--radius) !important;
+}
+
+.q-card,
+.q-table__container {
+    box-shadow: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.q-table thead th {
+    background-color: rgba(255, 255, 255, 0.03);
+    color: var(--color-zinc-400);
+    font-weight: 500;
+}
+
+.q-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.q-btn {
+    border-radius: var(--radius) !important;
+    box-shadow: none !important;
+}
+
+.q-chip {
+    border-radius: 9999px !important;
+    box-shadow: none !important;
+}

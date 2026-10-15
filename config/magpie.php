@@ -24,6 +24,26 @@ return [
         'password' => env('MAGPIE_MAIL_PASSWORD'),
         'inbox_label' => env('MAGPIE_MAIL_INBOX_LABEL', 'jobs'),
         'processed_label' => env('MAGPIE_MAIL_PROCESSED_LABEL', 'jobs-processed'),
+
+        // Application-confirmation scan (spec section 9's "deterministic
+        // confirmation matcher" alternative to Gatsby): a second, separate
+        // poll target from the job-alert inbox_label above — confirmation
+        // emails ("thank you for applying") land in the owner's normal
+        // mail, not the jobs label. Messages are only ever peeked at
+        // (never marked \Seen, moved, or relabeled) so he can still see
+        // them himself; confirmation_lookback_days is a rolling window
+        // re-scanned every run, with ProcessedConfirmationEmail (by
+        // Message-ID) as the dedup record since there's no IMAP-side
+        // "already handled" signal to rely on.
+        'confirmation_folder' => env('MAGPIE_MAIL_CONFIRMATION_FOLDER', 'INBOX'),
+        // Kept short (vs. e.g. the email intake's unbounded "jobs" label
+        // fetch) since this scan runs every 4 hours, not once a sweep —
+        // there's no need to re-walk weeks of INBOX history each time.
+        'confirmation_lookback_days' => env('MAGPIE_MAIL_CONFIRMATION_LOOKBACK_DAYS', 1),
+        // Shared between the full pipeline run's confirmation_check stage
+        // and the standalone magpie:check-confirmations command so the
+        // two can never process the same inbox scan concurrently.
+        'confirmation_lock_seconds' => env('MAGPIE_MAIL_CONFIRMATION_LOCK_SECONDS', 300),
     ],
 
     'enrichment' => [

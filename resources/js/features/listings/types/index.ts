@@ -11,6 +11,22 @@ export type ListingStatus = 'new' | 'applied' | 'not_interested'
 
 export type RemoteType = 'remote' | 'hybrid' | 'onsite'
 
+export type Rating = 'Strong' | 'Moderate' | 'Weak'
+
+export interface ListingScoreSummary {
+    rating: Rating
+    reasons: string[]
+    commentary: string | null
+}
+
+export interface ListingSalarySummary {
+    tiers: Array<{ low?: number; high?: number; period?: string; type?: string; label?: string }>
+    snippet: string | null
+    status: 'pass' | 'fail' | 'unknown'
+    tiered: boolean
+    parse_confidence: string
+}
+
 export interface Listing {
     id: number
     canonical_url: string
@@ -23,6 +39,11 @@ export interface Listing {
     status_reason: string | null
     applied_at: string | null
     first_seen_at: string
+    filter_reason: string | null
+    filter_flags: Record<string, boolean> | null
+    score: ListingScoreSummary | null
+    salary: ListingSalarySummary | null
+    sources: string[]
 }
 
 export type RunTrigger = 'schedule' | 'catchup'

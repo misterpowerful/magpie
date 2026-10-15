@@ -21,3 +21,11 @@ Schedule::command('magpie:run --trigger=schedule')
 Schedule::command('magpie:catch-up')
     ->cron('5 7 * * *')
     ->timezone('America/Chicago');
+
+// Standalone, more-frequent application-confirmation scan — decoupled
+// from the twice/thrice-weekly pipeline run above so a "thank you for
+// applying" email doesn't sit unmatched for days. No LLM calls (regex
+// only) and no owner-specific wall-clock target, so unlike the two
+// schedules above this doesn't need a fixed local time or ->timezone().
+Schedule::command('magpie:check-confirmations')
+    ->cron('0 */4 * * *');

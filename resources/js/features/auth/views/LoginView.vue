@@ -31,17 +31,25 @@ async function submit() {
     <q-layout view="hHh lpR fFf">
         <q-page-container>
             <q-page class="flex flex-center">
-                <q-card style="width: 360px" class="q-pa-md">
+                <q-card style="width: 360px" class="q-pa-lg">
                     <q-card-section>
-                        <div class="text-h6">Magpie 2.0</div>
+                        <div class="text-h6 text-zinc-100 text-weight-semibold">Magpie 2.0</div>
                     </q-card-section>
 
                     <q-card-section>
                         <q-form @submit.prevent="submit" class="q-gutter-md">
-                            <q-input v-model="email" type="email" label="Email" autofocus />
-                            <q-input v-model="password" type="password" label="Password" />
+                            <q-input v-model="email" type="email" label="Email" outlined dense autofocus />
+                            <q-input v-model="password" type="password" label="Password" outlined dense />
                             <div v-if="error" class="text-negative text-caption">{{ error }}</div>
-                            <q-btn type="submit" color="primary" label="Log in" :loading="loading" class="full-width" />
+                            <q-btn
+                                type="submit"
+                                color="primary"
+                                no-caps
+                                unelevated
+                                label="Log in"
+                                :loading="loading"
+                                class="full-width"
+                            />
                         </q-form>
                     </q-card-section>
                 </q-card>
