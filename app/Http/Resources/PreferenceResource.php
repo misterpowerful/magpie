@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\Preference;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -37,5 +38,16 @@ final class PreferenceResource extends JsonResource
             'has_resume_file' => $this->resume_path !== null,
             'stale_scored_count' => $this->staleScoredCount(),
         ];
+    }
+
+    /**
+     * Always 200. Every preferences endpoint lazily creates the row
+     * (firstOrCreate), and JsonResource answers 201 Created whenever its
+     * model was created during the request — but from the caller's side
+     * these are reads and updates of their settings, never a creation.
+     */
+    public function toResponse($request): JsonResponse
+    {
+        return parent::toResponse($request)->setStatusCode(200);
     }
 }
