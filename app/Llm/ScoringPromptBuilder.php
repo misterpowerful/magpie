@@ -31,12 +31,13 @@ final class ScoringPromptBuilder
 
             {"rating": "Strong"|"Moderate"|"Weak", "reasons": ["short reason", ...], "flags": ["short flag", ...], "commentary": "1-2 sentences, or null"}
 
-            Judge on: stack fit, remote/location fit, compensation vs. the
-            stated floor, consumer-facing impact, mission/stability
-            alignment, and honest naming of any gaps between the resume and
-            the role. "commentary" is required for a "Strong" rating and
-            must be null for "Moderate" or "Weak".
+            "commentary" is required for a "Strong" rating and must be null
+            for "Moderate" or "Weak".
             TEXT;
+
+        // The owner's own words (editable on the Sites page → Scoring);
+        // the output contract above stays fixed so responses still parse.
+        $criteria = "## Scoring criteria\n\n".$preferences->effectiveScoringCriteria();
 
         $resume = "## Candidate resume\n\n".($preferences->resume_text ?? '(no resume text on file)');
 
@@ -49,7 +50,7 @@ final class ScoringPromptBuilder
             'exclude_stack' => $preferences->exclude_stack,
         ], JSON_PRETTY_PRINT);
 
-        return "{$instructions}\n\n{$resume}\n\n{$prefs}";
+        return "{$instructions}\n\n{$criteria}\n\n{$resume}\n\n{$prefs}";
     }
 
     public function postingSection(Listing $listing): string

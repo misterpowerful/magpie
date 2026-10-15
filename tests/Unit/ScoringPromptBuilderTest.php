@@ -53,3 +53,15 @@ test('the prompt instructs the model to require commentary only for a Strong rat
 
     expect($this->builder->staticPrefix($preferences))->toContain('"commentary" is required for a "Strong" rating');
 });
+
+test('the prompt uses the default scoring criteria when none are set', function () {
+    expect($this->builder->staticPrefix(new Preference))->toContain(Preference::DEFAULT_SCORING_CRITERIA);
+});
+
+test('custom scoring criteria replace the default but the output contract stays', function () {
+    $prefix = $this->builder->staticPrefix(new Preference(['scoring_criteria' => 'Only care about four-day weeks.']));
+
+    expect($prefix)->toContain('Only care about four-day weeks.');
+    expect($prefix)->not->toContain('consumer-facing impact');
+    expect($prefix)->toContain('"rating": "Strong"|"Moderate"|"Weak"');
+});

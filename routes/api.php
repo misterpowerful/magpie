@@ -8,6 +8,11 @@ use App\Http\Controllers\Actions\Insights\CostInsightsAction;
 use App\Http\Controllers\Actions\Insights\RatingInsightsAction;
 use App\Http\Controllers\Actions\Insights\SourceInsightsAction;
 use App\Http\Controllers\Actions\Listings\IndexListingsAction;
+use App\Http\Controllers\Actions\Preferences\DownloadResumeAction;
+use App\Http\Controllers\Actions\Preferences\RescoreStaleListingsAction;
+use App\Http\Controllers\Actions\Preferences\ShowPreferencesAction;
+use App\Http\Controllers\Actions\Preferences\UpdatePreferencesAction;
+use App\Http\Controllers\Actions\Preferences\UploadResumeAction;
 use App\Http\Controllers\Actions\Listings\UpdateListingStatusAction;
 use App\Http\Controllers\Actions\Runs\IndexRunsAction;
 use App\Http\Controllers\Actions\Sites\DestroySiteAction;
@@ -29,6 +34,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/listings', IndexListingsAction::class);
     Route::patch('/listings/{listing}/status', UpdateListingStatusAction::class);
     Route::get('/runs', IndexRunsAction::class);
+
+    Route::prefix('preferences')->group(function () {
+        Route::get('/', ShowPreferencesAction::class);
+        Route::put('/', UpdatePreferencesAction::class);
+        Route::post('/resume', UploadResumeAction::class);
+        Route::get('/resume', DownloadResumeAction::class);
+        Route::post('/rescore', RescoreStaleListingsAction::class);
+    });
 
     Route::prefix('stats')->group(function () {
         Route::get('/sources', SourceStatsAction::class);

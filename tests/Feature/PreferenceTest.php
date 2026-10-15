@@ -31,3 +31,12 @@ test('resume_hash is null when there is no resume text', function () {
 
     expect($preference->resume_hash)->toBeNull();
 });
+
+test('changing the scoring criteria changes the scoring hash', function () {
+    $preference = Preference::factory()->create();
+    $before = $preference->scoringHash();
+
+    $preference->update(['scoring_criteria' => 'Prefer small product teams.']);
+
+    expect($preference->scoringHash())->not->toBe($before);
+});

@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import api from '@/shared/lib/api'
 import AppHeader from '@/shared/components/AppHeader.vue'
+import ResumePanel from '@/features/preferences/components/ResumePanel.vue'
+import ScoringPanel from '@/features/preferences/components/ScoringPanel.vue'
+import { usePreferences } from '@/features/preferences/composables/usePreferences'
 import { probeVerdicts, siteAdapters, siteColumns, siteDrivers } from '../constants'
 import { useSiteForm } from '../composables/useSiteForm'
 import type { Site } from '../types'
@@ -45,6 +49,31 @@ async function runNow(site: Site) {
     await loadSites()
 }
 
+// Sites / Scoring / Resume, kept in the URL (?tab=) so a reload or a
+// link lands on the same tab.
+const route = useRoute()
+const router = useRouter()
+const tabs = ['sites', 'scoring', 'resume'] as const
+type Tab = (typeof tabs)[number]
+const tab = computed<Tab>({
+    get: () => (tabs.includes(route.query.tab as Tab) ? (route.query.tab as Tab) : 'sites'),
+    set: (value) => router.replace({ query: { ...route.query, tab: value } }),
+})
+
+const prefs = usePreferences()
+const prefsStatus = computed(() => prefs.message.value)
+
+// Load preferences the first time a preferences tab is opened; clear a
+// stale "Saved." when switching tabs.
+watch(
+    tab,
+    (value) => {
+        prefs.message.value = null
+        if (value !== 'sites' && !prefs.preferences.value) prefs.load()
+    },
+    { immediate: true },
+)
+
 onMounted(loadSites)
 </script>
 
@@ -54,6 +83,45 @@ onMounted(loadSites)
 
         <q-page-container>
             <q-page class="q-pa-md">
+                <q-tabs v-model="tab" dense no-caps align="left" class="q-mb-md text-zinc-400" active-color="white" indicator-color="accent">
+                    <q-tab name="sites" label="Sites" />
+                    <q-tab name="scoring" label="Scoring" />
+                    <q-tab name="resume" label="Resume" />
+                </q-tabs>
+
+                <div v-if="tab !== 'sites'" class="max-w-3xl">
+                    <div v-if="!prefs.preferences.value" class="py-8 text-center text-sm text-zinc-500">Loading…</div>
+                    <ScoringPanel
+                        v-else-if="tab === 'scoring'"
+                        :preferences="prefs.preferences.value"
+                        :errors="prefs.errors.value"
+                        :saving="prefs.saving.value"
+                        :rescoring="prefs.rescoring.value"
+                        @save="prefs.save"
+                        @rescore="prefs.rescoreStale"
+                    >
+                        <template #status>
+                            <span v-if="prefsStatus" class="text-sm" :class="prefsStatus.kind === 'ok' ? 'text-teal-300' : 'text-red-400'">{{ prefsStatus.text }}</span>
+                        </template>
+                    </ScoringPanel>
+                    <ResumePanel
+                        v-else
+                        :preferences="prefs.preferences.value"
+                        :errors="prefs.errors.value"
+                        :saving="prefs.saving.value"
+                        :uploading="prefs.uploading.value"
+                        :rescoring="prefs.rescoring.value"
+                        @upload="prefs.uploadResume"
+                        @save-text="(text) => prefs.save({ resume_text: text }, 'Resume text saved.')"
+                        @rescore="prefs.rescoreStale"
+                    >
+                        <template #status>
+                            <span v-if="prefsStatus" class="text-sm" :class="prefsStatus.kind === 'ok' ? 'text-teal-300' : 'text-red-400'">{{ prefsStatus.text }}</span>
+                        </template>
+                    </ResumePanel>
+                </div>
+
+                <template v-else>
                 <div class="q-mb-md">
                     <q-btn color="primary" no-caps unelevated label="Add site" @click="openCreate" />
                 </div>
@@ -71,6 +139,7 @@ onMounted(loadSites)
                         </q-td>
                     </template>
                 </q-table>
+                </template>
             </q-page>
         </q-page-container>
 
