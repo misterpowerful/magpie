@@ -43,6 +43,15 @@ final class TitleFilter
     {
         $delimited = '/'.str_replace('/', '\/', $pattern).'/i';
 
-        return @preg_match($delimited, $title) === 1;
+        // A malformed owner-entered pattern just doesn't match. preg_match
+        // reports compile failures as an E_WARNING, which `@` hides from
+        // output but PHPUnit still flags — so swallow it explicitly.
+        set_error_handler(static fn (): bool => true);
+
+        try {
+            return preg_match($delimited, $title) === 1;
+        } finally {
+            restore_error_handler();
+        }
     }
 }
