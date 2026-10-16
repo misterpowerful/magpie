@@ -16,8 +16,18 @@ function bodyOf(error: unknown): ApiErrorBody | undefined {
     return isAxiosError(error) ? (error.response?.data as ApiErrorBody | undefined) : undefined
 }
 
+/**
+ * The message to show for a failed request. Anything other than a
+ * validation failure (those point at a field the user can fix) ends with
+ * the request's reference id, so what's on screen can be matched to the
+ * server-side log line.
+ */
 export function apiErrorMessage(error: unknown, fallback = 'Something went wrong.'): string {
-    return bodyOf(error)?.message ?? fallback
+    const body = bodyOf(error)
+    const message = body?.message ?? fallback
+    const reference = body?.code === 'validation_failed' ? null : errorReference(error)
+
+    return reference ? `${message} (Reference: ${reference.slice(0, 8)})` : message
 }
 
 /**
