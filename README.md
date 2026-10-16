@@ -1,4 +1,4 @@
-# Magpie
+# <img src="public/favicon.svg" alt="" width="36" align="top"> Magpie
 
 [![CI](https://github.com/misterpowerful/magpie/actions/workflows/ci.yml/badge.svg)](https://github.com/misterpowerful/magpie/actions/workflows/ci.yml)
 

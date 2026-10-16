@@ -21,7 +21,10 @@ async function logout() {
 <template>
     <q-header class="bg-[#111822] text-zinc-100 border-b border-white/10 shadow-none">
         <q-toolbar class="q-px-md">
-            <q-toolbar-title class="text-weight-semibold text-zinc-100">Magpie 2.0</q-toolbar-title>
+            <q-toolbar-title class="row items-center no-wrap text-weight-semibold text-zinc-100">
+                <img src="/favicon.svg" alt="" width="28" height="28" class="q-mr-sm" />
+                Magpie 2.0
+            </q-toolbar-title>
 
             <!-- Quasar's own breakpoint classes (gt-xs / xs), not Tailwind's
                  hidden/sm:flex: q-btn's unlayered display rule would beat those. -->
