@@ -1,0 +1,76 @@
+name: CI
+
+# Every push and pull request runs the same gates the project holds
+# itself to locally: tests, code style, static analysis, the frontend
+# type-check, and a production build.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (tests, Pint, PHPStan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, dom, curl, fileinfo, iconv, zip, zlib, pdo_sqlite
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Code style (Pint)
+        run: vendor/bin/pint --test
+
+      - name: Static analysis (PHPStan, level 6)
+        run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress --error-format=github
+
+      - name: Tests (Pest)
+        run: php artisan test
+
+  frontend:
+    name: Frontend (type-check, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Type-check (vue-tsc)
+        run: npm run type-check
+
+      - name: Production build (Vite)
+        run: |
+          cp .env.example .env
+          npm run build
