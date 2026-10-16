@@ -91,7 +91,7 @@ test('uploading a .docx extracts its paragraphs', function () {
 });
 
 test('uploading a PDF extracts its text', function () {
-    $content = "BT /F1 12 Tf 72 712 Td (Senior PHP Engineer) Tj ET";
+    $content = 'BT /F1 12 Tf 72 712 Td (Senior PHP Engineer) Tj ET';
     $objects = [
         '<< /Type /Catalog /Pages 2 0 R >>',
         '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',

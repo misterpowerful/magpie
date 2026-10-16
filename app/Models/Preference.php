@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * @property array<int, string>|null $onsite_states
@@ -18,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property array<int, string>|null $include_stack
  * @property array<int, string>|null $exclude_stack
  * @property string|null $scoring_criteria
- * @property \Illuminate\Support\Carbon|null $resume_uploaded_at
+ * @property Carbon|null $resume_uploaded_at
  */
 #[Fillable([
     'user_id',

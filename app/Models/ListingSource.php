@@ -8,6 +8,14 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Where a listing was seen. site_id is null for email intake, so `site`
+ * can be null too.
+ *
+ * @property int $listing_id
+ * @property int|null $site_id
+ * @property-read Site|null $site
+ */
 #[Fillable(['listing_id', 'site_id', 'first_seen_at'])]
 class ListingSource extends Model
 {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Actions\Insights;
 
 use App\Models\Listing;
+use App\Models\Run;
 use App\Support\StatsRange;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,7 @@ final class RatingInsightsAction
         $range = StatsRange::fromRequest($request);
         $userId = $request->user()->id;
 
-        $runs = $range->runs()->map(function ($run) use ($userId) {
+        $runs = $range->runs()->map(function (Run $run) use ($userId) {
             $counts = Listing::where('listings.user_id', $userId)
                 ->whereBetween('listings.first_seen_at', [$run->started_at, $run->ended_at ?? Carbon::now()])
                 ->leftJoin('listing_scores', 'listing_scores.listing_id', '=', 'listings.id')

@@ -8,6 +8,8 @@ use App\Llm\LlmRateLimitedException;
 use App\Models\Listing;
 use App\Models\LlmCall;
 use App\Models\Preference;
+use App\Models\Run;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Process;
 
 function fakeScoreProcess(string $resultText): void
@@ -143,12 +145,12 @@ test('a call made during a pipeline run is tagged with that run', function () {
         '*' => Process::result(output: json_encode(['is_error' => false, 'result' => 'ok', 'total_cost_usd' => 0.01]), exitCode: 0),
     ]);
 
-    $run = \App\Models\Run::factory()->create();
-    \Illuminate\Support\Facades\Context::add('run_id', $run->id);
+    $run = Run::factory()->create();
+    Context::add('run_id', $run->id);
 
     app(CliLlmDriver::class)->complete('hello', 'claude-haiku-4-5-20251001');
 
-    \Illuminate\Support\Facades\Context::forget('run_id');
+    Context::forget('run_id');
     app(CliLlmDriver::class)->complete('hello', 'claude-haiku-4-5-20251001');
 
     expect(LlmCall::orderBy('id')->pluck('run_id')->all())->toBe([$run->id, null]);

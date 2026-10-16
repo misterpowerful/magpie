@@ -13,6 +13,7 @@ use App\Models\ListingSalary;
 use App\Models\Preference;
 use App\Models\User;
 use App\Services\RunOrchestratorService;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\FakeLlmDriver;
@@ -264,7 +265,7 @@ test('LLM calls during a run see its run_id, and it is cleared once the run ends
 
         public function score(Listing $listing, Preference $preferences): ScoreResult
         {
-            $this->seenRunIds[] = \Illuminate\Support\Facades\Context::get('run_id');
+            $this->seenRunIds[] = Context::get('run_id');
 
             return parent::score($listing, $preferences);
         }
@@ -274,5 +275,5 @@ test('LLM calls during a run see its run_id, and it is cleared once the run ends
     $run = app(RunOrchestratorService::class)->run('schedule');
 
     expect($driver->seenRunIds)->toBe([$run->id]);
-    expect(\Illuminate\Support\Facades\Context::get('run_id'))->toBeNull();
+    expect(Context::get('run_id'))->toBeNull();
 });

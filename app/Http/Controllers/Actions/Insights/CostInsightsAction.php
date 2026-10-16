@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Actions\Insights;
 
 use App\Models\LlmCall;
+use App\Models\Run;
 use App\Support\StatsRange;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -29,6 +31,7 @@ final class CostInsightsAction
     {
         $range = StatsRange::fromRequest($request);
 
+        // Aggregates, not columns: read them as attributes.
         $totals = $range->llmCalls()
             ->selectRaw('COUNT(*) as calls')
             ->selectRaw("SUM(CASE WHEN outcome <> 'ok' THEN 1 ELSE 0 END) as failed_calls")
@@ -48,21 +51,21 @@ final class CostInsightsAction
         return response()->json([
             'data' => [
                 'totals' => [
-                    'calls' => (int) $totals->calls,
-                    'failed_calls' => (int) $totals->failed_calls,
-                    'cost_usd' => (float) ($totals->cost_usd ?? 0),
-                    'input_tokens' => (int) ($totals->input_tokens ?? 0),
-                    'output_tokens' => (int) ($totals->output_tokens ?? 0),
-                    'cache_read_input_tokens' => (int) ($totals->cache_read_input_tokens ?? 0),
-                    'cache_creation_input_tokens' => (int) ($totals->cache_creation_input_tokens ?? 0),
+                    'calls' => (int) $totals->getAttribute('calls'),
+                    'failed_calls' => (int) $totals->getAttribute('failed_calls'),
+                    'cost_usd' => (float) ($totals->getAttribute('cost_usd') ?? 0),
+                    'input_tokens' => (int) ($totals->getAttribute('input_tokens') ?? 0),
+                    'output_tokens' => (int) ($totals->getAttribute('output_tokens') ?? 0),
+                    'cache_read_input_tokens' => (int) ($totals->getAttribute('cache_read_input_tokens') ?? 0),
+                    'cache_creation_input_tokens' => (int) ($totals->getAttribute('cache_creation_input_tokens') ?? 0),
                 ],
-                'runs' => $runs->map(fn ($run) => [
+                'runs' => $runs->map(fn (Run $run) => [
                     'run_id' => $run->id,
                     'started_at' => $run->started_at->toIso8601String(),
                     'trigger' => $run->trigger,
                     'status' => $run->status,
-                    'calls' => (int) ($perRun[$run->id]->calls ?? 0),
-                    'cost_usd' => (float) ($perRun[$run->id]->cost_usd ?? 0),
+                    'calls' => (int) ($perRun->get($run->id)?->getAttribute('calls') ?? 0),
+                    'cost_usd' => (float) ($perRun->get($run->id)?->getAttribute('cost_usd') ?? 0),
                 ])->values(),
                 'by_task' => $this->breakdown($range->llmCalls(), self::TASK_CASE),
                 'by_model' => $this->breakdown($range->llmCalls(), 'model'),
@@ -72,7 +75,7 @@ final class CostInsightsAction
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<LlmCall>  $query
+     * @param  Builder<LlmCall>  $query
      * @return array<int, array{label: string, calls: int, cost_usd: float}>
      */
     private function breakdown($query, string $expression): array
@@ -83,9 +86,9 @@ final class CostInsightsAction
             ->orderByRaw('SUM(cost_usd) DESC')
             ->get()
             ->map(fn ($row) => [
-                'label' => (string) $row->label,
-                'calls' => (int) $row->calls,
-                'cost_usd' => (float) ($row->cost_usd ?? 0),
+                'label' => (string) $row->getAttribute('label'),
+                'calls' => (int) $row->getAttribute('calls'),
+                'cost_usd' => (float) ($row->getAttribute('cost_usd') ?? 0),
             ])
             ->all();
     }

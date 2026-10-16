@@ -34,7 +34,7 @@ final class UploadResumeAction
 
         $preferences = Preference::forUser($request->user());
         $previousPath = $preferences->resume_path;
-        $path = $file->storeAs("resumes/{$request->user()->id}", "resume-".Carbon::now()->format('YmdHis').".{$extension}", 'local');
+        $path = $file->storeAs("resumes/{$request->user()->id}", 'resume-'.Carbon::now()->format('YmdHis').".{$extension}", 'local');
 
         $preferences->update([
             'resume_text' => $text,

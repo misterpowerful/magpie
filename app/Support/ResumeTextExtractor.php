@@ -69,7 +69,7 @@ final class ResumeTextExtractor
         $zip->close();
 
         if ($xml === false) {
-            throw new RuntimeException("That .docx file has no document body.");
+            throw new RuntimeException('That .docx file has no document body.');
         }
 
         $dom = Dom::fromXml($xml);

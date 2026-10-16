@@ -11,6 +11,7 @@ use App\Models\ProcessedConfirmationEmail;
 use App\Models\User;
 use App\Services\ApplicationConfirmationService;
 use App\Services\ListingStatusService;
+use Illuminate\Support\Facades\Cache;
 use Tests\Support\FakeMailSource;
 use Tests\Support\FakeNotifier;
 
@@ -192,7 +193,7 @@ test('a second run is skipped cleanly while another confirmation check is alread
         makeConfirmationEmail('conf-1', 'Thank you for applying to Acme Corp', 'We have received your application.'),
     ];
 
-    $lock = \Illuminate\Support\Facades\Cache::lock('magpie:confirmation-check-lock', 60);
+    $lock = Cache::lock('magpie:confirmation-check-lock', 60);
     $lock->get();
 
     try {

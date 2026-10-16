@@ -14,6 +14,18 @@ use Illuminate\Database\Eloquent\Model;
  * `--output-format json` envelope. The owner is on Claude Pro, not
  * metered API billing, so cost_usd is "what this would have cost on
  * the API" — a usage-trend proxy, not a real charge.
+ *
+ * @property int $id
+ * @property int|null $run_id
+ * @property string $context
+ * @property string $model
+ * @property int|null $input_tokens
+ * @property int|null $output_tokens
+ * @property int|null $cache_creation_input_tokens
+ * @property int|null $cache_read_input_tokens
+ * @property string|null $cost_usd
+ * @property int $duration_ms
+ * @property string $outcome
  */
 #[Fillable([
     'run_id',

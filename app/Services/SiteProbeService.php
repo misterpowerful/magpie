@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\Http;
  * It's a snapshot from this server's network, which is the one that
  * matters (it's the one that does the fetching), but a site can still
  * change later — html site runs re-check via PageAccess.
+ *
+ * @phpstan-type ProbeResult array{verdict: 'feed'|'api'|'readable'|'needs_browser'|'unreachable', suggested_driver: ?string, suggested_adapter: ?string, reason: string, feed_url: ?string, http_status: ?int}
  */
 final class SiteProbeService
 {
@@ -30,7 +32,7 @@ final class SiteProbeService
     ) {}
 
     /**
-     * @return array{verdict: 'feed'|'api'|'readable'|'needs_browser'|'unreachable', suggested_driver: ?string, suggested_adapter: ?string, reason: string, feed_url: ?string, http_status: ?int}
+     * @return ProbeResult
      */
     public function probe(string $url): array
     {
@@ -67,6 +69,7 @@ final class SiteProbeService
 
     /**
      * @param  array{driver: string, adapter: string}|null  $known
+     * @return ProbeResult
      */
     private function readable(string $url, Response $response, ?array $known): array
     {
@@ -132,7 +135,7 @@ final class SiteProbeService
     }
 
     /**
-     * @return array{verdict: 'feed'|'api'|'readable'|'needs_browser'|'unreachable', suggested_driver: ?string, suggested_adapter: ?string, reason: string, feed_url: ?string, http_status: ?int}
+     * @return ProbeResult
      */
     private function result(string $verdict, ?string $driver, string $reason, ?string $adapter = null, ?string $feedUrl = null, ?int $status = null): array
     {

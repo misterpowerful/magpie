@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Intake\IntakeDriver;
+use App\Models\Site;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /*
@@ -37,7 +40,7 @@ pest()->extend(TestCase::class)
  *
  * @return array<int, array<string, mixed>>
  */
-function parseSite(App\Intake\IntakeDriver $driver, App\Models\Site $site): array
+function parseSite(IntakeDriver $driver, Site $site): array
 {
-    return $driver->parse($site, Illuminate\Support\Facades\Http::withHeaders($driver->headers())->get($site->url)->throw());
+    return $driver->parse($site, Http::withHeaders($driver->headers())->get($site->url)->throw());
 }
