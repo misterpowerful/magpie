@@ -33,6 +33,24 @@ const filteredListings = computed(() =>
 
 const { backlog, latestRun, load: loadRunSummary, subscribeToLiveUpdates } = useRunSummary(() => auth.user?.id)
 
+const pullingGmail = ref(false)
+const gmailStatus = ref<string | null>(null)
+
+async function pullFromGmail() {
+    pullingGmail.value = true
+    gmailStatus.value = null
+    try {
+        const { data } = await api.post<{ data: { processed: number; stubs: number; failed: number } }>(
+            '/api/admin/email-intake/run',
+        )
+        const { processed, stubs, failed } = data.data
+        gmailStatus.value = `Processed ${processed} email${processed === 1 ? '' : 's'}, created ${stubs} listing${stubs === 1 ? '' : 's'}${failed ? `, ${failed} failed` : ''}.`
+        await Promise.all([loadListings(), loadRunSummary()])
+    } finally {
+        pullingGmail.value = false
+    }
+}
+
 // Changes as a run starts, finishes each stage, and ends — the stat
 // tiles re-pull on each change so they track a run while it's going.
 const statsRefreshKey = computed(() =>
@@ -87,6 +105,8 @@ onMounted(() => {
                     >
                         Last run ({{ latestRun.trigger }}): {{ latestRun.status }}
                     </q-chip>
+                    <q-btn outline no-caps dense label="Pull from Gmail" :loading="pullingGmail" @click="pullFromGmail" />
+                    <span v-if="gmailStatus" class="text-sm text-zinc-400">{{ gmailStatus }}</span>
                 </div>
 
                 <StatsPanels :refresh-key="statsRefreshKey" class="q-mb-lg" />
