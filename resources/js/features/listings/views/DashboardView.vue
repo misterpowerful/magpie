@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import api from '@/shared/lib/api'
 import { useAuthStore } from '@/features/auth/stores/auth'
 import AppHeader from '@/shared/components/AppHeader.vue'
@@ -33,23 +33,67 @@ const filteredListings = computed(() =>
 
 const { backlog, latestRun, load: loadRunSummary, subscribeToLiveUpdates } = useRunSummary(() => auth.user?.id)
 
-const pullingGmail = ref(false)
-const gmailStatus = ref<string | null>(null)
+interface EmailPullStatus {
+    state: 'idle' | 'pending' | 'running' | 'done' | 'failed'
+    processed?: number
+    stubs?: number
+    failed?: number
+}
 
-async function pullFromGmail() {
-    pullingGmail.value = true
-    gmailStatus.value = null
-    try {
-        const { data } = await api.post<{ data: { processed: number; stubs: number; failed: number } }>(
-            '/api/admin/email-intake/run',
-        )
-        const { processed, stubs, failed } = data.data
-        gmailStatus.value = `Processed ${processed} email${processed === 1 ? '' : 's'}, created ${stubs} listing${stubs === 1 ? '' : 's'}${failed ? `, ${failed} failed` : ''}.`
+const pullingEmail = ref(false)
+const emailStatus = ref<string | null>(null)
+
+const pullPollMs = 3000
+const pullGiveUpMs = 10 * 60 * 1000
+let pullTimer: ReturnType<typeof setTimeout> | undefined
+
+function describePull(status: EmailPullStatus): string | null {
+    if (status.state === 'pending') return 'Queued — starts within a minute…'
+    if (status.state === 'running') return 'Pulling…'
+    if (status.state === 'failed') return 'Pull failed — see the Laravel log.'
+    if (status.state !== 'done') return null
+
+    const { processed = 0, stubs = 0, failed = 0 } = status
+
+    return `Processed ${processed} email${processed === 1 ? '' : 's'}, created ${stubs} listing${stubs === 1 ? '' : 's'}${failed ? `, ${failed} failed` : ''}.`
+}
+
+async function trackPull(startedAt: number) {
+    const { data } = await api.get<{ data: EmailPullStatus }>('/api/admin/email-intake/status')
+    emailStatus.value = describePull(data.data)
+
+    const settled = data.data.state === 'done' || data.data.state === 'failed' || data.data.state === 'idle'
+
+    if (!settled && Date.now() - startedAt < pullGiveUpMs) {
+        pullTimer = setTimeout(() => trackPull(startedAt).catch(stopPulling), pullPollMs)
+
+        return
+    }
+
+    pullingEmail.value = false
+
+    if (data.data.state === 'done') {
         await Promise.all([loadListings(), loadRunSummary()])
-    } finally {
-        pullingGmail.value = false
     }
 }
+
+function stopPulling() {
+    pullingEmail.value = false
+}
+
+async function pullFromEmail() {
+    pullingEmail.value = true
+    emailStatus.value = null
+    try {
+        await api.post('/api/admin/email-intake/run')
+        await trackPull(Date.now())
+    } catch (error) {
+        stopPulling()
+        throw error
+    }
+}
+
+onUnmounted(() => clearTimeout(pullTimer))
 
 // Changes as a run starts, finishes each stage, and ends — the stat
 // tiles re-pull on each change so they track a run while it's going.
@@ -105,8 +149,8 @@ onMounted(() => {
                     >
                         Last run ({{ latestRun.trigger }}): {{ latestRun.status }}
                     </q-chip>
-                    <q-btn outline no-caps dense label="Pull from Gmail" :loading="pullingGmail" @click="pullFromGmail" />
-                    <span v-if="gmailStatus" class="text-sm text-zinc-400">{{ gmailStatus }}</span>
+                    <q-btn outline no-caps dense label="Pull from email" :loading="pullingEmail" @click="pullFromEmail" />
+                    <span v-if="emailStatus" class="text-sm text-zinc-400">{{ emailStatus }}</span>
                 </div>
 
                 <StatsPanels :refresh-key="statsRefreshKey" class="q-mb-lg" />

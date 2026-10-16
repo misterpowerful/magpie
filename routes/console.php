@@ -29,3 +29,9 @@ Schedule::command('magpie:catch-up')
 // schedules above this doesn't need a fixed local time or ->timezone().
 Schedule::command('magpie:check-confirmations')
     ->cron('0 */4 * * *');
+
+// Picks up the dashboard's "Pull from email" button: the web process
+// can't run the claude CLI, so it files a request and this does the pull.
+Schedule::command('magpie:run-requested-email-pull')
+    ->everyMinute()
+    ->withoutOverlapping();

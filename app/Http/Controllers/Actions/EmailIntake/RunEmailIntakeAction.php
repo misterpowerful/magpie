@@ -4,20 +4,17 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Actions\EmailIntake;
 
-use App\Services\EmailIntakeService;
+use App\Services\EmailPullRequestService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 final class RunEmailIntakeAction
 {
     public function __construct(
-        private readonly EmailIntakeService $service,
+        private readonly EmailPullRequestService $requests,
     ) {}
 
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(): JsonResponse
     {
-        $result = $this->service->run($request->user()->id);
-
-        return response()->json(['data' => $result]);
+        return response()->json(['data' => $this->requests->request()], 202);
     }
 }
