@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/shared/components/AppHeader.vue'
+import RangeToggle from '@/shared/components/RangeToggle.vue'
 import { describeRange } from '@/features/stats/constants'
 import CostTab from '../components/CostTab.vue'
 import RatingsTab from '../components/RatingsTab.vue'
@@ -49,20 +50,7 @@ const { data, meta, loading } = useInsights(tab, range)
                     </q-tabs>
 
                     <div class="flex flex-wrap items-center gap-3">
-                        <div class="flex flex-nowrap! gap-1 rounded-lg border border-white/8 bg-[var(--q-dark)] p-1" role="radiogroup" aria-label="Range">
-                            <button
-                                v-for="r in insightsRanges"
-                                :key="r.value"
-                                type="button"
-                                role="radio"
-                                :aria-checked="range === r.value"
-                                class="cursor-pointer rounded-md border-0 px-3 py-1 font-[inherit] text-sm transition-colors"
-                                :class="range === r.value ? 'bg-teal-500/15 text-teal-300' : 'bg-transparent text-zinc-400 hover:text-zinc-200'"
-                                @click="range = r.value"
-                            >
-                                {{ r.label }}
-                            </button>
-                        </div>
+                        <RangeToggle v-model="range" :options="insightsRanges" />
                         <span class="text-xs text-zinc-500">{{ describeRange(meta ?? undefined) }}</span>
                     </div>
 

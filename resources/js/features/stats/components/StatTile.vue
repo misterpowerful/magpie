@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter, type RouteLocationRaw } from 'vue-router'
-import { rangeLabels } from '../constants'
+import Card from '@/shared/components/Card.vue'
+import RangeToggle from '@/shared/components/RangeToggle.vue'
+import { tileRanges } from '../constants'
 import type { StatsRange } from '../types'
 
 /**
@@ -26,7 +28,7 @@ defineSlots<{
 }>()
 
 const router = useRouter()
-const ranges = Object.keys(rangeLabels) as StatsRange[]
+const ranges = tileRanges.map((r) => r.value)
 const direction = ref<'left' | 'right'>('left')
 const clickable = computed(() => !props.disabled && props.to !== undefined)
 
@@ -37,6 +39,9 @@ function setRange(next: StatsRange) {
     direction.value = ranges.indexOf(next) > ranges.indexOf(range.value) ? 'left' : 'right'
     range.value = next
 }
+
+// The pills set the range through setRange too, so they slide the same way a swipe does.
+const toggled = computed({ get: () => range.value, set: setRange })
 
 function step(delta: 1 | -1) {
     const next = ranges[ranges.indexOf(range.value) + delta]
@@ -58,8 +63,8 @@ function open() {
 </script>
 
 <template>
-    <div
-        class="flex flex-col gap-3 overflow-hidden rounded-xl border border-white/8 bg-[var(--q-dark)] p-4 transition-colors select-none"
+    <Card
+        class="overflow-hidden transition-colors select-none"
         :class="[clickable ? 'cursor-pointer hover:border-white/20 focus-visible:border-teal-500 focus-visible:outline-none' : '', disabled ? 'opacity-50' : '']"
         :role="clickable ? 'link' : undefined"
         :tabindex="clickable ? 0 : undefined"
@@ -68,10 +73,10 @@ function open() {
         @keydown.left.prevent="!disabled && step(-1)"
         @keydown.right.prevent="!disabled && step(1)"
     >
-        <div class="flex flex-nowrap! items-center justify-between">
+        <template #header>
             <span class="text-sm font-medium text-zinc-400">{{ title }}</span>
             <q-icon :name="icon" size="18px" class="text-zinc-500" />
-        </div>
+        </template>
 
         <div v-touch-swipe.mouse.horizontal="onSwipe" class="relative min-h-0 flex-1">
             <Transition :name="`tile-slide-${direction}`" mode="out-in">
@@ -81,21 +86,8 @@ function open() {
             </Transition>
         </div>
 
-        <div v-if="!disabled" class="flex flex-nowrap! gap-1" role="tablist" aria-label="Range">
-            <button
-                v-for="r in ranges"
-                :key="r"
-                type="button"
-                role="tab"
-                :aria-selected="r === range"
-                class="cursor-pointer rounded-full border-0 px-2 py-0.5 font-[inherit] text-xs transition-colors"
-                :class="r === range ? 'bg-teal-500/15 text-teal-400' : 'bg-transparent text-zinc-500 hover:text-zinc-300'"
-                @click.stop="setRange(r)"
-            >
-                {{ rangeLabels[r] }}
-            </button>
-        </div>
-    </div>
+        <RangeToggle v-if="!disabled" v-model="toggled" :options="tileRanges" size="sm" />
+    </Card>
 </template>
 
 <style scoped>

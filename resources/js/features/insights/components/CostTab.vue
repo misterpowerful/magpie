@@ -3,10 +3,10 @@ import { computed } from 'vue'
 import BarList from '@/shared/charts/BarList.vue'
 import ColumnChart from '@/shared/charts/ColumnChart.vue'
 import { seriesColor } from '@/shared/charts/palette'
-import { formatCount, formatRunDate, formatTokens, formatUsd, formatUsdTick } from '../constants'
+import Card from '@/shared/components/Card.vue'
+import { formatCount, formatRunDate, formatTokens, formatUsd, formatUsdTick } from '@/shared/lib/format'
 import type { CostBreakdown, CostInsights } from '../types'
 import FigureTile from './FigureTile.vue'
-import InsightCard from './InsightCard.vue'
 
 const props = defineProps<{ data: CostInsights }>()
 
@@ -44,7 +44,7 @@ const breakdownRows = (rows: CostBreakdown[]) => rows.map((r) => ({ key: r.label
             />
         </div>
 
-        <InsightCard title="Cost per run" subtitle="API-equivalent estimate">
+        <Card title="Cost per run" subtitle="API-equivalent estimate">
             <ColumnChart
                 v-if="data.runs.length > 1"
                 :categories="data.runs.map((r) => ({ key: r.run_id, label: formatRunDate(r.started_at), detail: `${formatCount(r.calls)} calls · ${r.trigger}` }))"
@@ -56,20 +56,20 @@ const breakdownRows = (rows: CostBreakdown[]) => rows.map((r) => ({ key: r.label
             <div v-else class="py-6 text-center text-sm text-zinc-500">
                 {{ data.runs.length ? 'Switch to 7 or 30 days to see the trend across runs.' : 'No runs in this range.' }}
             </div>
-        </InsightCard>
+        </Card>
 
         <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <InsightCard title="By task">
+            <Card title="By task">
                 <BarList v-if="data.by_task.length" :rows="breakdownRows(data.by_task)" :series="costSeries" :format="formatUsd" />
                 <div v-else class="text-sm text-zinc-500">No calls in this range.</div>
-            </InsightCard>
-            <InsightCard title="By model">
+            </Card>
+            <Card title="By model">
                 <BarList v-if="data.by_model.length" :rows="breakdownRows(data.by_model)" :series="costSeries" :format="formatUsd" />
                 <div v-else class="text-sm text-zinc-500">No calls in this range.</div>
-            </InsightCard>
+            </Card>
         </div>
 
-        <InsightCard v-if="data.runs.length" title="Runs">
+        <Card v-if="data.runs.length" title="Runs">
             <div class="overflow-x-auto">
                 <table class="w-full border-collapse text-sm">
                     <thead>
@@ -92,6 +92,6 @@ const breakdownRows = (rows: CostBreakdown[]) => rows.map((r) => ({ key: r.label
                     </tbody>
                 </table>
             </div>
-        </InsightCard>
+        </Card>
     </div>
 </template>

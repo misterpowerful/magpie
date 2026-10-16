@@ -1,10 +1,9 @@
 import type { StatsMeta } from '@/features/stats/types'
+import type { RatingKey } from '@/shared/lib/ratings'
 
 export type InsightsTab = 'cost' | 'sources' | 'ratings'
 
 export type InsightsRange = 'last_run' | '7d' | '30d'
-
-export type RatingKey = 'Strong' | 'Moderate' | 'Weak' | 'Unscored'
 
 export interface CostRun {
     run_id: number

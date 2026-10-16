@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, reactive, watch } from 'vue'
 import { useDashboardStats } from '../composables/useDashboardStats'
-import { describeRange, numberFormat, usdFormat } from '../constants'
+import { formatCount, formatUsd } from '@/shared/lib/format'
+import { describeRange } from '../constants'
 import type { StatsRange } from '../types'
 import RatingDonut from './RatingDonut.vue'
 import StatTile from './StatTile.vue'
@@ -48,7 +49,7 @@ watch(() => props.refreshKey, load)
         <StatTile v-model:range="range.email" title="Email" icon="mail_outline" :to="insights('sources', range.email)">
             <template #default="{ range: r }">
                 <div class="text-3xl font-semibold text-zinc-100">
-                    {{ numberFormat.format(sources[r]?.data.buckets.email ?? 0) }}
+                    {{ formatCount(sources[r]?.data.buckets.email ?? 0) }}
                 </div>
                 <div class="mt-1 text-xs text-zinc-500">{{ describeRange(sources[r]?.meta) }}</div>
             </template>
@@ -57,7 +58,7 @@ watch(() => props.refreshKey, load)
         <StatTile v-model:range="range.feeds" title="API / feeds / other" icon="rss_feed" :to="insights('sources', range.feeds)">
             <template #default="{ range: r }">
                 <div class="text-3xl font-semibold text-zinc-100">
-                    {{ numberFormat.format(sources[r]?.data.buckets.feeds ?? 0) }}
+                    {{ formatCount(sources[r]?.data.buckets.feeds ?? 0) }}
                 </div>
                 <ul v-if="topFeeds(r).length" class="m-0 mt-1 flex list-none flex-col p-0 text-xs">
                     <li v-for="row in topFeeds(r)" :key="row.source" class="flex flex-nowrap! justify-between gap-2">
@@ -77,10 +78,10 @@ watch(() => props.refreshKey, load)
         <StatTile v-model:range="range.cost" title="Estimated cost" icon="payments" :to="insights('cost', range.cost)">
             <template #default="{ range: r }">
                 <div class="text-3xl font-semibold text-zinc-100">
-                    <span class="mr-1 text-zinc-500">≈</span>{{ usdFormat.format(usage[r]?.data.cost_usd ?? 0) }}
+                    <span class="mr-1 text-zinc-500">≈</span>{{ formatUsd(usage[r]?.data.cost_usd ?? 0) }}
                 </div>
                 <div class="mt-1 text-xs text-zinc-500">
-                    {{ numberFormat.format(usage[r]?.data.calls ?? 0) }} calls · API-equivalent
+                    {{ formatCount(usage[r]?.data.calls ?? 0) }} calls · API-equivalent
                 </div>
                 <div class="text-xs text-zinc-500">{{ describeRange(usage[r]?.meta) }}</div>
             </template>

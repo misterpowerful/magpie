@@ -4,7 +4,8 @@ import api from '@/shared/lib/api'
 import { useAuthStore } from '@/features/auth/stores/auth'
 import AppHeader from '@/shared/components/AppHeader.vue'
 import StatsPanels from '@/features/stats/components/StatsPanels.vue'
-import { listingColumns, ratingBadge, scoringOptions, statusTabs } from '../constants'
+import { ratingByKey, type RatingKey } from '@/shared/lib/ratings'
+import { listingColumns, scoringOptions, statusTabs } from '../constants'
 import { useListingStatusDialog } from '../composables/useListingStatusDialog'
 import { useRunSummary } from '../composables/useRunSummary'
 import type { Listing } from '../types'
@@ -128,9 +129,9 @@ onMounted(() => {
                             >
                                 <span
                                     class="size-2 rounded-full"
-                                    :style="{ backgroundColor: ratingBadge[props.row.score.rating]?.color }"
+                                    :style="{ backgroundColor: ratingByKey[props.row.score.rating as RatingKey]?.color }"
                                 />
-                                {{ ratingBadge[props.row.score.rating]?.label ?? props.row.score.rating }}
+                                {{ ratingByKey[props.row.score.rating as RatingKey]?.label ?? props.row.score.rating }}
                             </span>
                             <span v-else class="text-zinc-400">—</span>
                         </q-td>

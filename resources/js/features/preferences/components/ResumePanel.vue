@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import Card from '@/shared/components/Card.vue'
 import type { Preferences } from '../types'
 import RescoreBanner from './RescoreBanner.vue'
 
@@ -43,8 +44,7 @@ const uploadedAt = () =>
     <div class="flex flex-col gap-4">
         <RescoreBanner :count="preferences.stale_scored_count" :busy="rescoring" @rescore="emit('rescore')" />
 
-        <section class="flex flex-col gap-3 rounded-xl border border-white/8 bg-[var(--q-dark)] p-4">
-            <div role="heading" aria-level="2" class="text-sm font-medium text-zinc-200">Resume file</div>
+        <Card title="Resume file">
 
             <div v-if="preferences.has_resume_file" class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                 <q-icon name="description" size="18px" class="text-zinc-400" />
@@ -69,13 +69,9 @@ const uploadedAt = () =>
             >
                 <template #prepend><q-icon name="upload_file" /></template>
             </q-file>
-        </section>
+        </Card>
 
-        <section class="flex flex-col gap-3 rounded-xl border border-white/8 bg-[var(--q-dark)] p-4">
-            <div>
-                <div role="heading" aria-level="2" class="text-sm font-medium text-zinc-200">What Claude reads</div>
-                <div class="text-xs text-zinc-500">Extracted from your file. Fix anything that came through garbled — this text is what each listing is scored against.</div>
-            </div>
+        <Card title="What Claude reads" subtitle="Extracted from your file. Fix anything that came through garbled — this text is what each listing is scored against.">
             <q-input
                 v-model="text"
                 type="textarea"
@@ -96,6 +92,6 @@ const uploadedAt = () =>
                 />
                 <slot name="status" />
             </div>
-        </section>
+        </Card>
     </div>
 </template>
