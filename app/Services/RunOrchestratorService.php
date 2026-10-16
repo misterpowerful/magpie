@@ -12,6 +12,8 @@ use App\Models\Preference;
 use App\Models\Run;
 use App\Models\Site;
 use App\Models\User;
+use Generator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
@@ -175,6 +177,27 @@ final class RunOrchestratorService
     }
 
     /**
+     * Walks a query's listings in order without holding its SELECT open.
+     * An open cursor pins a read snapshot, so once another connection
+     * commits a write (the dashboard's polling touches the session table),
+     * this connection's next UPDATE fails at once with "database is
+     * locked" — SQLite can't upgrade a stale snapshot, busy timeout or not.
+     *
+     * @param  Builder<Listing>  $query
+     * @return Generator<int, Listing>
+     */
+    private function listingsOf(Builder $query): Generator
+    {
+        foreach ($query->pluck('listings.id') as $id) {
+            $listing = Listing::find($id);
+
+            if ($listing) {
+                yield $listing;
+            }
+        }
+    }
+
+    /**
      * @param  callable(): array<string, mixed>  $stage
      * @return array<string, mixed>
      */
@@ -252,7 +275,7 @@ final class RunOrchestratorService
         $rejected = 0;
         $timedOut = false;
 
-        foreach (Listing::where('user_id', $user->id)->where('state', 'new')->cursor() as $listing) {
+        foreach ($this->listingsOf(Listing::where('user_id', $user->id)->where('state', 'new')) as $listing) {
             if (Carbon::now()->gte($deadline)) {
                 $timedOut = true;
                 break;
@@ -276,7 +299,7 @@ final class RunOrchestratorService
     {
         $stats = ['fetched' => 0, 'needs_browser' => 0, 'enrichment_failed' => 0, 'timed_out' => false];
 
-        foreach (Listing::where('user_id', $user->id)->where('state', 'new')->cursor() as $listing) {
+        foreach ($this->listingsOf(Listing::where('user_id', $user->id)->where('state', 'new')) as $listing) {
             if (Carbon::now()->gte($deadline)) {
                 $stats['timed_out'] = true;
                 break;
@@ -296,7 +319,7 @@ final class RunOrchestratorService
     {
         $stats = ['filtered_in' => 0, 'filtered_out' => 0, 'timed_out' => false];
 
-        foreach (Listing::where('user_id', $user->id)->where('state', 'fetched')->cursor() as $listing) {
+        foreach ($this->listingsOf(Listing::where('user_id', $user->id)->where('state', 'fetched')) as $listing) {
             if (Carbon::now()->gte($deadline)) {
                 $stats['timed_out'] = true;
                 break;
@@ -328,9 +351,9 @@ final class RunOrchestratorService
             ->leftJoin('listing_salary', 'listing_salary.listing_id', '=', 'listings.id')
             ->orderByRaw("case when listing_salary.parse_confidence = 'high' then 0 else 1 end")
             ->orderBy('listings.first_seen_at')
-            ->select('listings.*');
+            ->select('listings.id');
 
-        foreach ($query->cursor() as $listing) {
+        foreach ($this->listingsOf($query) as $listing) {
             if (Carbon::now()->gte($deadline)) {
                 $stats['timed_out'] = true;
                 break;
