@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Process;
 final class CliLlmDriver implements LlmDriver
 {
     public function __construct(
-        private readonly ScoringPromptBuilder $promptBuilder = new ScoringPromptBuilder,
+        private readonly ScoringPromptBuilder $promptBuilder,
     ) {}
 
     public function score(Listing $listing, Preference $preferences): ScoreResult

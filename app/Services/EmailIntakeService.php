@@ -23,13 +23,15 @@ final class EmailIntakeService
         private readonly MailSource $mailSource,
         private readonly EmailParserRegistry $registry,
         private readonly ListingIntakeService $listingIntake,
-        private readonly int $userId,
     ) {}
 
     /**
+     * Creates the listings for $userId — the owner, in practice; a
+     * per-call argument so the service itself is container-resolvable.
+     *
      * @return array{processed: int, stubs: int, failed: int}
      */
-    public function run(): array
+    public function run(int $userId): array
     {
         $processed = 0;
         $stubCount = 0;
@@ -49,7 +51,7 @@ final class EmailIntakeService
                 $stubs = $parser->parse($email);
 
                 foreach ($stubs as $stub) {
-                    $this->listingIntake->firstOrCreateFromStub($this->userId, $stub);
+                    $this->listingIntake->firstOrCreateFromStub($userId, $stub);
                 }
 
                 $this->mailSource->markProcessed($email);

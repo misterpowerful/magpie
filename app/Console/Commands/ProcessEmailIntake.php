@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Inbox\EmailParserRegistry;
-use App\Inbox\MailSource;
 use App\Models\User;
 use App\Services\EmailIntakeService;
-use App\Services\ListingIntakeService;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -17,7 +14,7 @@ use Illuminate\Console\Command;
 #[Description('Poll the inbox label and turn alert emails into listing stubs (spec section 5 "email")')]
 class ProcessEmailIntake extends Command
 {
-    public function handle(MailSource $mailSource, EmailParserRegistry $registry, ListingIntakeService $listingIntake): int
+    public function handle(EmailIntakeService $emailIntake): int
     {
         $user = User::admin();
 
@@ -27,8 +24,7 @@ class ProcessEmailIntake extends Command
             return self::FAILURE;
         }
 
-        $service = new EmailIntakeService($mailSource, $registry, $listingIntake, $user->id);
-        $result = $service->run();
+        $result = $emailIntake->run($user->id);
 
         $this->info("Processed: {$result['processed']}, stubs: {$result['stubs']}, failed: {$result['failed']}");
 

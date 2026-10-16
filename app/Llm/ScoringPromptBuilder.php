@@ -18,7 +18,7 @@ use App\Support\ListingTextTrimmer;
 final class ScoringPromptBuilder
 {
     public function __construct(
-        private readonly ListingTextTrimmer $trimmer = new ListingTextTrimmer,
+        private readonly ListingTextTrimmer $trimmer,
     ) {}
 
     public function staticPrefix(Preference $preferences): string

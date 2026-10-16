@@ -28,7 +28,7 @@ test('a rate-limit error envelope throws LlmRateLimitedException, not the generi
         ),
     ]);
 
-    (new CliLlmDriver)->complete('hello', 'claude-haiku-4-5-20251001');
+    app(CliLlmDriver::class)->complete('hello', 'claude-haiku-4-5-20251001');
 })->throws(LlmRateLimitedException::class);
 
 test('a non-rate-limit error envelope throws the generic LlmDriverException', function () {
@@ -39,7 +39,7 @@ test('a non-rate-limit error envelope throws the generic LlmDriverException', fu
         ),
     ]);
 
-    (new CliLlmDriver)->complete('hello', 'claude-haiku-4-5-20251001');
+    app(CliLlmDriver::class)->complete('hello', 'claude-haiku-4-5-20251001');
 })->throws(LlmDriverException::class);
 
 test('a rate-limited process failure (non-zero exit) also throws LlmRateLimitedException', function () {
@@ -47,7 +47,7 @@ test('a rate-limited process failure (non-zero exit) also throws LlmRateLimitedE
         '*' => Process::result(output: '', errorOutput: 'HTTP 429 Too Many Requests', exitCode: 1),
     ]);
 
-    (new CliLlmDriver)->complete('hello', 'claude-haiku-4-5-20251001');
+    app(CliLlmDriver::class)->complete('hello', 'claude-haiku-4-5-20251001');
 })->throws(LlmRateLimitedException::class);
 
 test('a successful completion returns the raw result text', function () {
@@ -58,7 +58,7 @@ test('a successful completion returns the raw result text', function () {
         ),
     ]);
 
-    expect((new CliLlmDriver)->complete('hello', 'claude-haiku-4-5-20251001'))->toBe('the answer');
+    expect(app(CliLlmDriver::class)->complete('hello', 'claude-haiku-4-5-20251001'))->toBe('the answer');
 });
 
 test('a successful call persists an LlmCall row with its token usage and cost', function () {
@@ -79,7 +79,7 @@ test('a successful call persists an LlmCall row with its token usage and cost', 
         ),
     ]);
 
-    (new CliLlmDriver)->complete('hello', 'claude-haiku-4-5-20251001');
+    app(CliLlmDriver::class)->complete('hello', 'claude-haiku-4-5-20251001');
 
     expect(LlmCall::count())->toBe(1);
 
@@ -98,7 +98,7 @@ test('a failed call still persists an LlmCall row, so failures show up in usage 
     ]);
 
     try {
-        (new CliLlmDriver)->complete('hello', 'claude-haiku-4-5-20251001');
+        app(CliLlmDriver::class)->complete('hello', 'claude-haiku-4-5-20251001');
     } catch (LlmDriverException) {
         // expected
     }
@@ -110,7 +110,7 @@ test('a failed call still persists an LlmCall row, so failures show up in usage 
 test('a score response wrapped in a ```json code fence still parses correctly', function () {
     fakeScoreProcess("```json\n".json_encode(['rating' => 'Strong', 'reasons' => ['Good fit'], 'flags' => [], 'commentary' => 'Great match.'])."\n```");
 
-    $result = (new CliLlmDriver)->score(Listing::factory()->make(), Preference::factory()->make());
+    $result = app(CliLlmDriver::class)->score(Listing::factory()->make(), Preference::factory()->make());
 
     expect($result->rating)->toBe('Strong');
     expect($result->commentary)->toBe('Great match.');
@@ -119,7 +119,7 @@ test('a score response wrapped in a ```json code fence still parses correctly', 
 test('a score response wrapped in a bare ``` code fence (no "json" label) still parses correctly', function () {
     fakeScoreProcess("```\n".json_encode(['rating' => 'Weak', 'reasons' => ['Stack mismatch'], 'flags' => []])."\n```");
 
-    $result = (new CliLlmDriver)->score(Listing::factory()->make(), Preference::factory()->make());
+    $result = app(CliLlmDriver::class)->score(Listing::factory()->make(), Preference::factory()->make());
 
     expect($result->rating)->toBe('Weak');
 });
@@ -127,7 +127,7 @@ test('a score response wrapped in a bare ``` code fence (no "json" label) still 
 test('an unwrapped score response (no code fence) still parses correctly', function () {
     fakeScoreProcess(json_encode(['rating' => 'Moderate', 'reasons' => ['Partial fit'], 'flags' => []]));
 
-    $result = (new CliLlmDriver)->score(Listing::factory()->make(), Preference::factory()->make());
+    $result = app(CliLlmDriver::class)->score(Listing::factory()->make(), Preference::factory()->make());
 
     expect($result->rating)->toBe('Moderate');
 });
@@ -135,7 +135,7 @@ test('an unwrapped score response (no code fence) still parses correctly', funct
 test('genuinely invalid score JSON still throws, fence or no fence', function () {
     fakeScoreProcess('```json'."\n".'not actually json'."\n".'```');
 
-    (new CliLlmDriver)->score(Listing::factory()->make(), Preference::factory()->make());
+    app(CliLlmDriver::class)->score(Listing::factory()->make(), Preference::factory()->make());
 })->throws(LlmDriverException::class);
 
 test('a call made during a pipeline run is tagged with that run', function () {
@@ -146,10 +146,10 @@ test('a call made during a pipeline run is tagged with that run', function () {
     $run = \App\Models\Run::factory()->create();
     \Illuminate\Support\Facades\Context::add('run_id', $run->id);
 
-    (new CliLlmDriver)->complete('hello', 'claude-haiku-4-5-20251001');
+    app(CliLlmDriver::class)->complete('hello', 'claude-haiku-4-5-20251001');
 
     \Illuminate\Support\Facades\Context::forget('run_id');
-    (new CliLlmDriver)->complete('hello', 'claude-haiku-4-5-20251001');
+    app(CliLlmDriver::class)->complete('hello', 'claude-haiku-4-5-20251001');
 
     expect(LlmCall::orderBy('id')->pluck('run_id')->all())->toBe([$run->id, null]);
 });

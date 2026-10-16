@@ -25,7 +25,7 @@ use Webklex\PHPIMAP\Message;
 final class ImapMailSource implements MailSource
 {
     public function __construct(
-        private readonly ClientManager $manager = new ClientManager,
+        private readonly ClientManager $manager,
     ) {}
 
     public function fetchUnprocessed(): array

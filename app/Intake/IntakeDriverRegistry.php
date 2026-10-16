@@ -57,7 +57,7 @@ final class IntakeDriverRegistry
      *
      * @return array{driver: string, adapter: string}|null
      */
-    public static function forUrl(string $url): ?array
+    public function forUrl(string $url): ?array
     {
         $host = strtolower((string) parse_url($url, PHP_URL_HOST));
         $host = preg_replace('/^www\./', '', $host) ?? $host;

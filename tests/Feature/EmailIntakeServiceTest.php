@@ -49,9 +49,9 @@ test('processed emails create listings and get relabeled', function () {
     };
 
     $registry = (new EmailParserRegistry)->register($parser);
-    $service = new EmailIntakeService($mailSource, $registry, app(ListingIntakeService::class), $user->id);
+    $service = new EmailIntakeService($mailSource, $registry, app(ListingIntakeService::class));
 
-    $result = $service->run();
+    $result = $service->run($user->id);
 
     expect($result)->toBe(['processed' => 1, 'stubs' => 1, 'failed' => 0]);
     expect(Listing::where('user_id', $user->id)->count())->toBe(1);
@@ -77,9 +77,9 @@ test('a parser that throws leaves the email unprocessed for retry next run', fun
     };
 
     $registry = (new EmailParserRegistry)->register($parser);
-    $service = new EmailIntakeService($mailSource, $registry, app(ListingIntakeService::class), $user->id);
+    $service = new EmailIntakeService($mailSource, $registry, app(ListingIntakeService::class));
 
-    $result = $service->run();
+    $result = $service->run($user->id);
 
     expect($result)->toBe(['processed' => 0, 'stubs' => 0, 'failed' => 1]);
     expect($mailSource->processedMessageIds)->toBe([]);
@@ -91,9 +91,9 @@ test('an email no parser claims is counted as failed, not processed', function (
     $mailSource->emails = [makeAlert('msg-1')];
 
     $registry = new EmailParserRegistry; // empty — nothing claims anything
-    $service = new EmailIntakeService($mailSource, $registry, app(ListingIntakeService::class), $user->id);
+    $service = new EmailIntakeService($mailSource, $registry, app(ListingIntakeService::class));
 
-    $result = $service->run();
+    $result = $service->run($user->id);
 
     expect($result)->toBe(['processed' => 0, 'stubs' => 0, 'failed' => 1]);
 });
@@ -127,9 +127,9 @@ test('one email yielding two jobs still dedupes correctly against an existing li
     };
 
     $registry = (new EmailParserRegistry)->register($parser);
-    $service = new EmailIntakeService($mailSource, $registry, app(ListingIntakeService::class), $user->id);
+    $service = new EmailIntakeService($mailSource, $registry, app(ListingIntakeService::class));
 
-    $service->run();
+    $service->run($user->id);
 
     expect(Listing::where('user_id', $user->id)->count())->toBe(2);
 });

@@ -5,9 +5,10 @@ declare(strict_types=1);
 use App\Llm\ScoringPromptBuilder;
 use App\Models\Listing;
 use App\Models\Preference;
+use App\Support\ListingTextTrimmer;
 
 beforeEach(function () {
-    $this->builder = new ScoringPromptBuilder;
+    $this->builder = new ScoringPromptBuilder(new ListingTextTrimmer);
 });
 
 test('the static prefix is byte-identical for two different listings under the same preferences', function () {

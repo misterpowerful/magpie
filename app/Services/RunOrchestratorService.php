@@ -6,8 +6,6 @@ namespace App\Services;
 
 use App\Contracts\Notifier;
 use App\Events\RunProgressUpdated;
-use App\Inbox\EmailParserRegistry;
-use App\Inbox\MailSource;
 use App\Llm\LlmRateLimitedException;
 use App\Models\Listing;
 use App\Models\Preference;
@@ -39,9 +37,7 @@ final class RunOrchestratorService
 {
     public function __construct(
         private readonly SiteIntakeService $siteIntake,
-        private readonly MailSource $mailSource,
-        private readonly EmailParserRegistry $emailParserRegistry,
-        private readonly ListingIntakeService $listingIntake,
+        private readonly EmailIntakeService $emailIntake,
         private readonly ListingFilterService $filterService,
         private readonly ListingEnrichmentService $enrichmentService,
         private readonly ListingScoringService $scoringService,
@@ -207,8 +203,7 @@ final class RunOrchestratorService
         $emailStats = null;
 
         try {
-            $emailService = new EmailIntakeService($this->mailSource, $this->emailParserRegistry, $this->listingIntake, $user->id);
-            $emailStats = $emailService->run();
+            $emailStats = $this->emailIntake->run($user->id);
         } catch (Throwable $e) {
             Log::error('Email intake failed during run', ['error' => $e->getMessage()]);
             $emailStats = ['error' => $e->getMessage()];

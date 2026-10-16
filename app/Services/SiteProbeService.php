@@ -24,7 +24,10 @@ use Illuminate\Support\Facades\Http;
  */
 final class SiteProbeService
 {
-    public function __construct(private readonly PageAccess $pageAccess) {}
+    public function __construct(
+        private readonly PageAccess $pageAccess,
+        private readonly IntakeDriverRegistry $registry,
+    ) {}
 
     /**
      * @return array{verdict: 'feed'|'api'|'readable'|'needs_browser'|'unreachable', suggested_driver: ?string, suggested_adapter: ?string, reason: string, feed_url: ?string, http_status: ?int}
@@ -39,7 +42,7 @@ final class SiteProbeService
             return $this->result('unreachable', null, "Couldn't connect: {$e->getMessage()}");
         }
 
-        $known = IntakeDriverRegistry::forUrl($url);
+        $known = $this->registry->forUrl($url);
 
         if ($response->successful() && $this->isFeed($response)) {
             return $this->result('feed', $known['driver'] ?? 'rss', $known
