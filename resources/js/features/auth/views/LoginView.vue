@@ -33,7 +33,10 @@ async function submit() {
             <q-page class="flex flex-center">
                 <q-card style="width: 360px" class="q-pa-lg">
                     <q-card-section>
-                        <div class="text-h6 text-zinc-100 text-weight-semibold">Magpie 2.0</div>
+                        <div class="row items-center no-wrap text-h6 text-zinc-100 text-weight-semibold">
+                            <img src="/favicon.svg" alt="" width="32" height="32" class="q-mr-sm" />
+                            Magpie 2.0
+                        </div>
                     </q-card-section>
 
                     <q-card-section>
