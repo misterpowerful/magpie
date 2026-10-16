@@ -1,6 +1,6 @@
 import { onUnmounted, ref } from 'vue'
 import api from '@/shared/lib/api'
-import { getEcho } from '@/shared/lib/echo'
+import { currentEcho, loadEcho } from '@/shared/lib/echo'
 import type { Run, RunStatus } from '../types'
 
 interface RunProgressPayload {
@@ -19,6 +19,7 @@ export function useRunSummary(userId: () => number | null | undefined) {
     const latestRun = ref<Run | null>(null)
     const loading = ref(false)
     let subscribedChannelName: string | null = null
+    let unmounted = false
 
     async function load() {
         loading.value = true
@@ -31,11 +32,17 @@ export function useRunSummary(userId: () => number | null | undefined) {
         }
     }
 
-    function subscribeToLiveUpdates() {
+    async function subscribeToLiveUpdates() {
         const id = userId()
-        const echo = getEcho()
 
-        if (!echo || !id) {
+        if (!id) {
+            return
+        }
+
+        const echo = await loadEcho()
+
+        // The client loads on demand; the dashboard may be gone by the time it arrives.
+        if (!echo || unmounted) {
             return
         }
 
@@ -53,8 +60,9 @@ export function useRunSummary(userId: () => number | null | undefined) {
     }
 
     onUnmounted(() => {
+        unmounted = true
         if (subscribedChannelName) {
-            getEcho()?.leave(subscribedChannelName)
+            currentEcho()?.leave(subscribedChannelName)
         }
     })
 
