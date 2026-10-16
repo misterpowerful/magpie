@@ -154,27 +154,20 @@ test('rescore queues only pending listings scored against old criteria or an old
     $user = User::factory()->create();
     $preferences = Preference::factory()->create(['user_id' => $user->id, 'resume_text' => 'Current resume']);
 
-    $score = function (Listing $listing, string $prefsHash, ?string $resumeHash) {
-        ListingScore::create([
-            'listing_id' => $listing->id, 'rating' => 'Moderate', 'reasons' => [], 'flags' => [], 'commentary' => null,
-            'prefs_hash' => $prefsHash, 'resume_hash' => $resumeHash, 'model' => 'claude-sonnet-5-5', 'scored_at' => now(),
-        ]);
-    };
-
     $current = Listing::factory()->for($user)->create(['state' => 'scored', 'status' => 'new']);
-    $score($current, $preferences->scoringHash(), $preferences->resume_hash);
+    ListingScore::factory()->for($current)->create(['prefs_hash' => $preferences->scoringHash(), 'resume_hash' => $preferences->resume_hash]);
 
     $oldResume = Listing::factory()->for($user)->create(['state' => 'scored', 'status' => 'new']);
-    $score($oldResume, $preferences->scoringHash(), hash('sha256', 'Old resume'));
+    ListingScore::factory()->for($oldResume)->create(['prefs_hash' => $preferences->scoringHash(), 'resume_hash' => hash('sha256', 'Old resume')]);
 
     $noResume = Listing::factory()->for($user)->create(['state' => 'scored', 'status' => 'new']);
-    $score($noResume, $preferences->scoringHash(), null);
+    ListingScore::factory()->for($noResume)->create(['prefs_hash' => $preferences->scoringHash(), 'resume_hash' => null]);
 
     $oldCriteria = Listing::factory()->for($user)->create(['state' => 'scored', 'status' => 'new']);
-    $score($oldCriteria, 'old-prefs-hash', $preferences->resume_hash);
+    ListingScore::factory()->for($oldCriteria)->create(['prefs_hash' => 'old-prefs-hash', 'resume_hash' => $preferences->resume_hash]);
 
     $applied = Listing::factory()->for($user)->create(['state' => 'scored', 'status' => 'applied']);
-    $score($applied, 'old-prefs-hash', null);
+    ListingScore::factory()->for($applied)->create(['prefs_hash' => 'old-prefs-hash', 'resume_hash' => null]);
 
     $this->actingAs($user)->getJson('/api/preferences')->assertJsonPath('data.stale_scored_count', 3);
 

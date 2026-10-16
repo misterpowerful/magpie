@@ -10,14 +10,6 @@ use App\Models\Run;
 use App\Models\Site;
 use App\Models\User;
 
-function insightsScore(Listing $listing, string $rating): void
-{
-    ListingScore::create([
-        'listing_id' => $listing->id, 'rating' => $rating, 'reasons' => [], 'flags' => [], 'commentary' => null,
-        'prefs_hash' => 'test', 'resume_hash' => 'test', 'model' => 'claude-sonnet-5', 'scored_at' => now(),
-    ]);
-}
-
 /**
  * @param  array<string, mixed>  $overrides
  */
@@ -90,7 +82,7 @@ test('source insights break each source down by rating', function () {
         ListingSource::create(['listing_id' => $listing->id, 'site_id' => $siteId, 'first_seen_at' => now()->subDay()]);
 
         if ($rating) {
-            insightsScore($listing, $rating);
+            ListingScore::factory()->for($listing)->rating($rating)->create();
         }
     }
 
@@ -107,9 +99,9 @@ test('rating insights give each run in range the mix of listings it pulled in', 
     $first = Run::factory()->create(['started_at' => now()->subDays(4), 'ended_at' => now()->subDays(4)->addHour()]);
     $second = Run::factory()->create(['started_at' => now()->subDay(), 'ended_at' => now()->subDay()->addHour()]);
 
-    insightsScore(Listing::factory()->for($user)->create(['first_seen_at' => now()->subDays(4)->addMinutes(10)]), 'Strong');
+    ListingScore::factory()->for(Listing::factory()->for($user)->create(['first_seen_at' => now()->subDays(4)->addMinutes(10)]))->rating('Strong')->create();
     Listing::factory()->for($user)->create(['first_seen_at' => now()->subDay()->addMinutes(5)]);
-    insightsScore(Listing::factory()->for($user)->create(['first_seen_at' => now()->subDay()->addMinutes(20)]), 'Weak');
+    ListingScore::factory()->for(Listing::factory()->for($user)->create(['first_seen_at' => now()->subDay()->addMinutes(20)]))->rating('Weak')->create();
     // Between runs (e.g. a manual site run): belongs to neither.
     Listing::factory()->for($user)->create(['first_seen_at' => now()->subDays(2)]);
 

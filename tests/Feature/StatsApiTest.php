@@ -50,35 +50,20 @@ test('source stats respect the 7d range toggle', function () {
     expect(collect($response->json('data'))->firstWhere('source', 'Remotive')['count'])->toBe(1);
 });
 
-function makeScore(Listing $listing, string $rating): ListingScore
-{
-    return ListingScore::create([
-        'listing_id' => $listing->id,
-        'rating' => $rating,
-        'reasons' => [],
-        'flags' => [],
-        'commentary' => null,
-        'prefs_hash' => 'test',
-        'resume_hash' => 'test',
-        'model' => 'claude-sonnet-5',
-        'scored_at' => now(),
-    ]);
-}
-
 test('rating stats break listings down by Strong/Moderate/Weak/Unscored', function () {
     $user = User::factory()->create();
 
     $strong = Listing::factory()->for($user)->create(['first_seen_at' => now()->subHour()]);
-    makeScore($strong, 'Strong');
+    ListingScore::factory()->for($strong)->rating('Strong')->create();
 
     $moderate = Listing::factory()->for($user)->create(['first_seen_at' => now()->subHour()]);
-    makeScore($moderate, 'Moderate');
+    ListingScore::factory()->for($moderate)->rating('Moderate')->create();
 
     Listing::factory()->for($user)->create(['first_seen_at' => now()->subHour()]); // unscored
 
     // Out of the default 1d range — must not be counted.
     $oldStrong = Listing::factory()->for($user)->create(['first_seen_at' => now()->subDays(3)]);
-    makeScore($oldStrong, 'Strong');
+    ListingScore::factory()->for($oldStrong)->rating('Strong')->create();
 
     $response = $this->actingAs($user)->getJson('/api/stats/ratings')->assertOk();
 
@@ -122,7 +107,7 @@ test('last_run scopes listings to the latest run window and reports it in meta',
     $latest = Run::factory()->create(['started_at' => now()->subHours(3), 'ended_at' => now()->subHours(2)]);
 
     $inRun = Listing::factory()->for($user)->create(['first_seen_at' => now()->subHours(3)->addMinutes(5)]);
-    makeScore($inRun, 'Strong');
+    ListingScore::factory()->for($inRun)->rating('Strong')->create();
 
     // Within the 1d range, but after the run finished (e.g. a manual site run).
     Listing::factory()->for($user)->create(['first_seen_at' => now()->subHour()]);
