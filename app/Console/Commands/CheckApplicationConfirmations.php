@@ -25,10 +25,10 @@ class CheckApplicationConfirmations extends Command
 {
     public function handle(ApplicationConfirmationService $service): int
     {
-        $user = User::where('email', config('magpie.admin_email'))->first();
+        $user = User::admin();
 
         if (! $user) {
-            $this->error('No admin user found — check ADMIN_EMAIL.');
+            $this->error(User::MISSING_ADMIN_MESSAGE);
 
             return self::FAILURE;
         }

@@ -17,7 +17,7 @@ final class UpdatePreferencesAction
 {
     public function __invoke(UpdatePreferencesRequest $request): PreferenceResource
     {
-        $preferences = Preference::firstOrCreate(['user_id' => $request->user()->id]);
+        $preferences = Preference::forUser($request->user());
         $data = $request->validated();
 
         foreach (['scoring_criteria', 'resume_text'] as $field) {

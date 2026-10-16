@@ -50,10 +50,10 @@ class ImportV1Listings extends Command
             return self::FAILURE;
         }
 
-        $user = User::where('email', config('magpie.admin_email'))->first();
+        $user = User::admin();
 
         if (! $user) {
-            $this->error('No admin user found — check ADMIN_EMAIL and run the seeder.');
+            $this->error(User::MISSING_ADMIN_MESSAGE);
 
             return self::FAILURE;
         }

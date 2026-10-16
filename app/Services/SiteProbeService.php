@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Intake\IntakeDriverRegistry;
+use App\Support\Dom;
 use App\Support\PageAccess;
-use DOMDocument;
 use DOMXPath;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
@@ -23,17 +24,6 @@ use Illuminate\Support\Facades\Http;
  */
 final class SiteProbeService
 {
-    /**
-     * Hosts with a built-in adapter (IntakeDriverRegistry), so a feed or
-     * API on one of them can be wired up with no code changes.
-     */
-    private const KNOWN_HOSTS = [
-        'weworkremotely.com' => ['driver' => 'rss', 'adapter' => 'we_work_remotely'],
-        'larajobs.com' => ['driver' => 'rss', 'adapter' => 'larajobs'],
-        'remotive.com' => ['driver' => 'api', 'adapter' => 'remotive'],
-        'remoteok.com' => ['driver' => 'api', 'adapter' => 'remote_ok'],
-    ];
-
     public function __construct(private readonly PageAccess $pageAccess) {}
 
     /**
@@ -42,14 +32,14 @@ final class SiteProbeService
     public function probe(string $url): array
     {
         try {
-            $response = Http::timeout((int) config('magpie.enrichment.timeout'))
+            $response = Http::timeout((int) config('magpie.sites.probe_timeout'))
                 ->withHeaders(['Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.8,*/*;q=0.5'])
                 ->get($url);
         } catch (ConnectionException $e) {
             return $this->result('unreachable', null, "Couldn't connect: {$e->getMessage()}");
         }
 
-        $known = $this->knownHost($url);
+        $known = IntakeDriverRegistry::forUrl($url);
 
         if ($response->successful() && $this->isFeed($response)) {
             return $this->result('feed', $known['driver'] ?? 'rss', $known
@@ -119,10 +109,7 @@ final class SiteProbeService
             return null;
         }
 
-        $previous = libxml_use_internal_errors(true);
-        $dom = new DOMDocument;
-        $dom->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
-        libxml_use_internal_errors($previous);
+        $dom = Dom::fromHtml($html);
 
         $nodes = (new DOMXPath($dom))->query("//link[@rel='alternate'][contains(@type, 'rss') or contains(@type, 'atom')]/@href");
         $href = $nodes !== false && $nodes->length > 0 ? trim((string) $nodes->item(0)?->nodeValue) : '';
@@ -139,17 +126,6 @@ final class SiteProbeService
         $origin = ($parts['scheme'] ?? 'https').'://'.($parts['host'] ?? '').(isset($parts['port']) ? ':'.$parts['port'] : '');
 
         return str_starts_with($href, '/') ? $origin.$href : rtrim($pageUrl, '/').'/'.$href;
-    }
-
-    /**
-     * @return array{driver: string, adapter: string}|null
-     */
-    private function knownHost(string $url): ?array
-    {
-        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
-        $host = preg_replace('/^www\./', '', $host) ?? $host;
-
-        return self::KNOWN_HOSTS[$host] ?? null;
     }
 
     /**

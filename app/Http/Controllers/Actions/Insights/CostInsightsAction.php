@@ -14,9 +14,8 @@ use Illuminate\Http\Request;
  * for the range — totals, cost per run over time, and where it went by
  * task and by model.
  *
- * last_run scopes calls by run_id (like UsageStatsAction); the day
- * ranges take every call in the window, so totals there also include
- * calls made outside a run, which the per-run series can't show.
+ * Which calls count is StatsRange::llmCalls; in the day ranges that
+ * includes calls made outside a run, which the per-run series can't show.
  */
 final class CostInsightsAction
 {
@@ -30,21 +29,7 @@ final class CostInsightsAction
     {
         $range = StatsRange::fromRequest($request);
 
-        $scoped = function () use ($range) {
-            $query = LlmCall::query();
-
-            if ($range->isEmpty()) {
-                return $query->whereRaw('1 = 0');
-            }
-
-            if ($range->run !== null) {
-                return $query->where('run_id', $range->run->id);
-            }
-
-            return $range->apply($query, 'created_at');
-        };
-
-        $totals = $scoped()
+        $totals = $range->llmCalls()
             ->selectRaw('COUNT(*) as calls')
             ->selectRaw("SUM(CASE WHEN outcome <> 'ok' THEN 1 ELSE 0 END) as failed_calls")
             ->selectRaw('SUM(cost_usd) as cost_usd')
@@ -79,8 +64,8 @@ final class CostInsightsAction
                     'calls' => (int) ($perRun[$run->id]->calls ?? 0),
                     'cost_usd' => (float) ($perRun[$run->id]->cost_usd ?? 0),
                 ])->values(),
-                'by_task' => $this->breakdown($scoped(), self::TASK_CASE),
-                'by_model' => $this->breakdown($scoped(), 'model'),
+                'by_task' => $this->breakdown($range->llmCalls(), self::TASK_CASE),
+                'by_model' => $this->breakdown($range->llmCalls(), 'model'),
             ],
             'meta' => $range->meta(),
         ]);

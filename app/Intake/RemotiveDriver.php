@@ -7,7 +7,6 @@ namespace App\Intake;
 use App\Models\Site;
 use App\Support\RemoteTypeGuesser;
 use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Http;
 
 /**
  * Remotive JSON API. Its ToS asks for at most ~4 requests/day and no
@@ -17,11 +16,6 @@ use Illuminate\Support\Facades\Http;
  */
 final class RemotiveDriver implements IntakeDriver
 {
-    public function fetch(Site $site): array
-    {
-        return $this->parse($site, Http::get($site->url)->throw());
-    }
-
     public function headers(): array
     {
         return [];

@@ -74,6 +74,15 @@ class Preference extends Model
     }
 
     /**
+     * The user's preferences, created with the defaults on first use —
+     * every reader (runs, the Scoring and Resume tabs) can assume a row.
+     */
+    public static function forUser(User|int $user): self
+    {
+        return self::firstOrCreate(['user_id' => $user instanceof User ? $user->id : $user]);
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo

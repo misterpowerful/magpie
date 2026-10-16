@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support;
 
-use DOMDocument;
 
 /**
  * Strips markup noise (scripts, nav/footer chrome) and returns visible
@@ -22,10 +21,7 @@ final class HtmlTextExtractor
             return '';
         }
 
-        $previousSetting = libxml_use_internal_errors(true);
-        $dom = new DOMDocument;
-        $dom->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
-        libxml_use_internal_errors($previousSetting);
+        $dom = Dom::fromHtml($html);
 
         foreach (self::STRIP_TAGS as $tagName) {
             $nodes = $dom->getElementsByTagName($tagName);

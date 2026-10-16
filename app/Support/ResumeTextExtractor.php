@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support;
 
-use DOMDocument;
 use DOMXPath;
 use RuntimeException;
 use Smalot\PdfParser\Parser as PdfParser;
@@ -73,10 +72,7 @@ final class ResumeTextExtractor
             throw new RuntimeException("That .docx file has no document body.");
         }
 
-        $dom = new DOMDocument;
-        $previous = libxml_use_internal_errors(true);
-        $dom->loadXML($xml, LIBXML_NONET);
-        libxml_use_internal_errors($previous);
+        $dom = Dom::fromXml($xml);
 
         $xpath = new DOMXPath($dom);
         $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');

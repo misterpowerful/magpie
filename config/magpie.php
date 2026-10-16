@@ -46,6 +46,12 @@ return [
         'confirmation_lock_seconds' => env('MAGPIE_MAIL_CONFIRMATION_LOCK_SECONDS', 300),
     ],
 
+    'sites' => [
+        // The Add Site "Check URL" fetch. Separate from the enrichment
+        // timeout so tuning one never silently changes the other.
+        'probe_timeout' => env('MAGPIE_SITE_PROBE_TIMEOUT', 15),
+    ],
+
     'enrichment' => [
         // Spec section 5 "enrichment escalation": plain HTTP fetch of the
         // posting, falling back to needs_browser on a login wall or an

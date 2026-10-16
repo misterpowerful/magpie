@@ -12,19 +12,12 @@ use Illuminate\Http\Client\Response;
  * ListingIntakeService::firstOrCreateFromStub (spec section 5: "all
  * intake drivers produce listing stubs").
  *
- * fetch() and parse() are split so the run orchestrator can fetch every
- * enabled site concurrently via Http::pool() (spec section 8 "per-site
- * stage timeout", and the decision to pool site fetches) while still
- * reusing each driver's own parsing logic; fetch() is defined in terms
- * of parse() for the single-site case (e.g. the admin "run now" button).
+ * Drivers only parse: SiteIntakeService makes every request itself
+ * (pooled via Http::pool() for a run, singly for "Run now"), so the
+ * fetch, its timeout, and the html page-access check live in one place.
  */
 interface IntakeDriver
 {
-    /**
-     * @return array<int, array{url: string, company: ?string, title: string, location_text: ?string, remote_type: ?string, raw_text: ?string}>
-     */
-    public function fetch(Site $site): array;
-
     /**
      * @return array<int, array{url: string, company: ?string, title: string, location_text: ?string, remote_type: ?string, raw_text: ?string}>
      */
@@ -32,8 +25,7 @@ interface IntakeDriver
 
     /**
      * Extra headers this source needs on its request (e.g. a User-Agent
-     * some sources require) — used both by fetch() and by the pooled
-     * batch fetch so the two stay in sync.
+     * some sources require), sent by SiteIntakeService's fetch.
      *
      * @return array<string, string>
      */

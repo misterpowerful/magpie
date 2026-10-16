@@ -42,7 +42,7 @@ test('parses listings from a career page using configured XPath selectors', func
         ],
     ]);
 
-    $stubs = (new HtmlIntakeDriver)->fetch($site);
+    $stubs = parseSite(new HtmlIntakeDriver, $site);
 
     expect($stubs)->toHaveCount(2);
 
@@ -73,7 +73,7 @@ test('missing optional selectors (company, location) yield null rather than fail
         ],
     ]);
 
-    $stubs = (new HtmlIntakeDriver)->fetch($site);
+    $stubs = parseSite(new HtmlIntakeDriver, $site);
 
     expect($stubs)->toHaveCount(1);
     expect($stubs[0]['company'])->toBeNull();
@@ -81,10 +81,12 @@ test('missing optional selectors (company, location) yield null rather than fail
 });
 
 test('a site missing required selectors throws rather than silently returning nothing', function () {
+    Http::fake(['careers.example.com/*' => Http::response('<html><body></body></html>', 200)]);
+
     $site = Site::factory()->create([
         'url' => 'https://careers.example.com/jobs',
         'config' => ['adapter' => 'html', 'selectors' => ['list_item' => "//div[@class='job']"]],
     ]);
 
-    (new HtmlIntakeDriver)->fetch($site);
+    parseSite(new HtmlIntakeDriver, $site);
 })->throws(RuntimeException::class);

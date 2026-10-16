@@ -16,13 +16,19 @@ use RuntimeException;
  */
 final class IntakeDriverRegistry
 {
-    /** @var array<string, class-string<IntakeDriver>> */
+    /**
+     * Every adapter: its parser, the site driver it belongs to, and (for
+     * a source-specific adapter) the host it reads — which is how the Add
+     * Site URL check recognizes a source Magpie can already handle.
+     *
+     * @var array<string, array{class: class-string<IntakeDriver>, driver: string, host: ?string}>
+     */
     private const ADAPTERS = [
-        'we_work_remotely' => WeWorkRemotelyDriver::class,
-        'larajobs' => LaraJobsDriver::class,
-        'remotive' => RemotiveDriver::class,
-        'remote_ok' => RemoteOkDriver::class,
-        'html' => HtmlIntakeDriver::class,
+        'we_work_remotely' => ['class' => WeWorkRemotelyDriver::class, 'driver' => 'rss', 'host' => 'weworkremotely.com'],
+        'larajobs' => ['class' => LaraJobsDriver::class, 'driver' => 'rss', 'host' => 'larajobs.com'],
+        'remotive' => ['class' => RemotiveDriver::class, 'driver' => 'api', 'host' => 'remotive.com'],
+        'remote_ok' => ['class' => RemoteOkDriver::class, 'driver' => 'api', 'host' => 'remoteok.com'],
+        'html' => ['class' => HtmlIntakeDriver::class, 'driver' => 'html', 'host' => null],
     ];
 
     /**
@@ -43,6 +49,25 @@ final class IntakeDriverRegistry
             throw new RuntimeException("Site \"{$site->name}\" has no known adapter configured (config.adapter = ".json_encode($adapter).')');
         }
 
-        return app(self::ADAPTERS[$adapter]);
+        return app(self::ADAPTERS[$adapter]['class']);
+    }
+
+    /**
+     * The built-in adapter for a URL's host (ignoring "www."), if any.
+     *
+     * @return array{driver: string, adapter: string}|null
+     */
+    public static function forUrl(string $url): ?array
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $host = preg_replace('/^www\./', '', $host) ?? $host;
+
+        foreach (self::ADAPTERS as $adapter => $definition) {
+            if ($definition['host'] === $host) {
+                return ['driver' => $definition['driver'], 'adapter' => $adapter];
+            }
+        }
+
+        return null;
     }
 }

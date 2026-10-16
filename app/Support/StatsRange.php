@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Models\LlmCall;
 use App\Models\Run;
 use Illuminate\Contracts\Database\Query\Builder;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -80,6 +82,30 @@ final class StatsRange
         }
 
         return $query;
+    }
+
+    /**
+     * LLM calls in this range. last_run means the calls tagged with that
+     * run (llm_calls.run_id), not everything in its time window — so a
+     * manual "Run now" or ad-hoc command overlapping the run isn't
+     * counted against it. The day ranges take every call in the window,
+     * including those made outside any run.
+     *
+     * @return EloquentBuilder<LlmCall>
+     */
+    public function llmCalls(): EloquentBuilder
+    {
+        $query = LlmCall::query();
+
+        if ($this->isEmpty()) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($this->run !== null) {
+            return $query->where('run_id', $this->run->id);
+        }
+
+        return $this->apply($query, 'created_at');
     }
 
     /**

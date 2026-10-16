@@ -12,7 +12,7 @@ test('parses the job: namespace fields', function () {
 
     $site = Site::factory()->create(['url' => 'https://larajobs.com/feed']);
 
-    $stubs = (new LaraJobsDriver)->fetch($site);
+    $stubs = parseSite(new LaraJobsDriver, $site);
 
     expect($stubs)->not->toBeEmpty();
     expect($stubs[0]['company'])->not->toBeNull();
@@ -26,7 +26,7 @@ test('guesses remote_type from the job location when it mentions remote', functi
 
     $site = Site::factory()->create(['url' => 'https://larajobs.com/feed']);
 
-    $stubs = (new LaraJobsDriver)->fetch($site);
+    $stubs = parseSite(new LaraJobsDriver, $site);
     $remoteStub = collect($stubs)->first(fn ($s) => $s['location_text'] && stripos($s['location_text'], 'remote') !== false);
 
     expect($remoteStub)->not->toBeNull();

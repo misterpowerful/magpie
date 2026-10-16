@@ -12,7 +12,7 @@ test('parses Remotive jobs JSON', function () {
 
     $site = Site::factory()->create(['url' => 'https://remotive.com/api/remote-jobs?category=software-dev']);
 
-    $stubs = (new RemotiveDriver)->fetch($site);
+    $stubs = parseSite(new RemotiveDriver, $site);
 
     expect($stubs)->not->toBeEmpty();
     expect($stubs[0]['company'])->not->toBeNull();

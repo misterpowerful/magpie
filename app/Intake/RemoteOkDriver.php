@@ -7,7 +7,6 @@ namespace App\Intake;
 use App\Models\Site;
 use App\Support\RemoteTypeGuesser;
 use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Http;
 
 /**
  * Remote OK JSON API. The first array element is a metadata/legal
@@ -15,11 +14,6 @@ use Illuminate\Support\Facades\Http;
  */
 final class RemoteOkDriver implements IntakeDriver
 {
-    public function fetch(Site $site): array
-    {
-        return $this->parse($site, Http::withHeaders($this->headers())->get($site->url)->throw());
-    }
-
     public function headers(): array
     {
         return ['User-Agent' => 'Mozilla/5.0'];

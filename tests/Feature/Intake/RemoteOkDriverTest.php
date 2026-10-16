@@ -12,7 +12,7 @@ test('parses Remote OK jobs JSON, skipping the legal/metadata banner entry', fun
 
     $site = Site::factory()->create(['url' => 'https://remoteok.com/api']);
 
-    $stubs = (new RemoteOkDriver)->fetch($site);
+    $stubs = parseSite(new RemoteOkDriver, $site);
 
     expect($stubs)->not->toBeEmpty();
 

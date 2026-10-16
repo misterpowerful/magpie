@@ -20,7 +20,7 @@ final class RescoreStaleListingsAction
 {
     public function __invoke(Request $request): JsonResponse
     {
-        $preferences = Preference::firstOrCreate(['user_id' => $request->user()->id]);
+        $preferences = Preference::forUser($request->user());
 
         $queued = $preferences->staleScoredListings()->update(['state' => 'filtered_in']);
 

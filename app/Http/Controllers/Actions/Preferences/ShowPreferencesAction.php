@@ -12,6 +12,6 @@ final class ShowPreferencesAction
 {
     public function __invoke(Request $request): PreferenceResource
     {
-        return new PreferenceResource(Preference::firstOrCreate(['user_id' => $request->user()->id]));
+        return new PreferenceResource(Preference::forUser($request->user()));
     }
 }

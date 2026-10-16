@@ -12,7 +12,7 @@ test('parses company and title out of the "Company: Title" format, with the full
 
     $site = Site::factory()->create(['url' => 'https://weworkremotely.com/categories/remote-programming-jobs.rss']);
 
-    $stubs = (new WeWorkRemotelyDriver)->fetch($site);
+    $stubs = parseSite(new WeWorkRemotelyDriver, $site);
 
     expect($stubs)->not->toBeEmpty();
     expect($stubs[0]['company'])->not->toBeNull();

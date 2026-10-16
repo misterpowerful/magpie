@@ -32,7 +32,7 @@ final class UploadResumeAction
             throw ValidationException::withMessages(['resume' => [$e->getMessage()]]);
         }
 
-        $preferences = Preference::firstOrCreate(['user_id' => $request->user()->id]);
+        $preferences = Preference::forUser($request->user());
         $previousPath = $preferences->resume_path;
         $path = $file->storeAs("resumes/{$request->user()->id}", "resume-".Carbon::now()->format('YmdHis').".{$extension}", 'local');
 

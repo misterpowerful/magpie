@@ -20,6 +20,18 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    /** Shown by commands that can't run without the owner's account. */
+    public const MISSING_ADMIN_MESSAGE = 'No admin user found — check ADMIN_EMAIL and run the seeder.';
+
+    /**
+     * The owner: Magpie is single-user, and pipeline runs, email intake
+     * and the confirmation scan all act on behalf of this account.
+     */
+    public static function admin(): ?self
+    {
+        return self::where('email', config('magpie.admin_email'))->first();
+    }
+
     /**
      * @return HasMany<Preference, $this>
      */

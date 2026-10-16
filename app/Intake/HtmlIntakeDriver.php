@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Intake;
 
 use App\Models\Site;
+use App\Support\Dom;
 use App\Support\RemoteTypeGuesser;
-use DOMDocument;
 use DOMNode;
 use DOMXPath;
 use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
@@ -39,13 +38,6 @@ use RuntimeException;
  */
 final class HtmlIntakeDriver implements IntakeDriver
 {
-    public function fetch(Site $site): array
-    {
-        $this->validateSelectors($site);
-
-        return $this->parse($site, Http::get($site->url)->throw());
-    }
-
     public function headers(): array
     {
         return [];
@@ -109,12 +101,7 @@ final class HtmlIntakeDriver implements IntakeDriver
 
     private function buildXPath(string $html): DOMXPath
     {
-        $previousSetting = libxml_use_internal_errors(true);
-        $dom = new DOMDocument;
-        $dom->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
-        libxml_use_internal_errors($previousSetting);
-
-        return new DOMXPath($dom);
+        return new DOMXPath(Dom::fromHtml($html));
     }
 
     private function queryOne(DOMXPath $xpath, ?string $expr, DOMNode $context): ?string

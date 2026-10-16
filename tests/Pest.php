@@ -50,3 +50,14 @@ function something()
 {
     // ..
 }
+
+/**
+ * Run a site's URL through a driver the way SiteIntakeService does: one
+ * request with the driver's headers, then parse(). Drivers don't fetch.
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function parseSite(App\Intake\IntakeDriver $driver, App\Models\Site $site): array
+{
+    return $driver->parse($site, Illuminate\Support\Facades\Http::withHeaders($driver->headers())->get($site->url)->throw());
+}

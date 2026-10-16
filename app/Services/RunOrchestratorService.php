@@ -69,7 +69,7 @@ final class RunOrchestratorService
     {
         $stats = [];
 
-        $user = User::where('email', config('magpie.admin_email'))->first();
+        $user = User::admin();
 
         if (! $user) {
             $run->update(['status' => 'failed', 'ended_at' => Carbon::now(), 'stage_stats' => ['error' => 'No admin user found']]);
@@ -77,7 +77,7 @@ final class RunOrchestratorService
             return $run;
         }
 
-        $preferences = Preference::firstOrCreate(['user_id' => $user->id]);
+        $preferences = Preference::forUser($user);
         $globalDeadline = Carbon::now()->addMinutes((int) config('magpie.run.time_cap_minutes'));
 
         try {
