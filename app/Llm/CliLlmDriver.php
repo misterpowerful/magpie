@@ -59,7 +59,7 @@ final class CliLlmDriver implements LlmDriver
         $started = microtime(true);
 
         $result = Process::timeout(config('magpie.llm.cli_timeout'))->run([
-            'claude',
+            config('magpie.llm.cli_binary'),
             '-p', $prompt,
             '--output-format', 'json',
             '--model', $model,

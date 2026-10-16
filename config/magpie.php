@@ -12,6 +12,9 @@ return [
         'scoring_model' => env('MAGPIE_LLM_SCORING_MODEL', 'claude-sonnet-5-5'),
         'triage_model' => env('MAGPIE_LLM_TRIAGE_MODEL', 'claude-haiku-5-5'),
         'cli_timeout' => env('MAGPIE_LLM_CLI_TIMEOUT', 120),
+        // Absolute path when `claude` isn't on the PATH of the process that
+        // runs it (cron's PATH is just /usr/bin:/bin).
+        'cli_binary' => env('MAGPIE_LLM_CLI_BINARY', 'claude'),
     ],
 
     'mail' => [
