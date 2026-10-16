@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\Listing;
+use App\Models\ListingSource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -48,7 +49,8 @@ final class ListingResource extends JsonResource
             ] : null),
             'sources' => $this->whenLoaded(
                 'sources',
-                fn () => $this->sources->map(fn ($source) => $source->site?->name ?? 'email')->unique()->values(),
+                // No site means email intake (site_id is also nulled if a site is deleted).
+                fn () => $this->sources->map(fn (ListingSource $source) => $source->site_id === null ? 'email' : $source->site->name)->unique()->values(),
             ),
         ];
     }

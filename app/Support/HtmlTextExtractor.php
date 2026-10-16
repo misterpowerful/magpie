@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support;
 
-
 /**
  * Strips markup noise (scripts, nav/footer chrome) and returns visible
  * text, used both by enrichment (to get a listing's full body) and to
