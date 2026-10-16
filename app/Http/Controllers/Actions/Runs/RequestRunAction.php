@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Actions\EmailIntake;
+namespace App\Http\Controllers\Actions\Runs;
 
-use App\Services\EmailPullRequestService;
+use App\Services\RunRequestService;
 use Illuminate\Http\JsonResponse;
 
-final class RunEmailIntakeAction
+final class RequestRunAction
 {
     public function __construct(
-        private readonly EmailPullRequestService $requests,
+        private readonly RunRequestService $requests,
     ) {}
 
     public function __invoke(): JsonResponse

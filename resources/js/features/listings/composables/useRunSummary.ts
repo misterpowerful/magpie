@@ -16,6 +16,8 @@ interface RunProgressPayload {
  */
 export function useRunSummary(userId: () => number | null | undefined) {
     const backlog = ref(0)
+    const pending = ref(false)
+    const running = ref(false)
     const latestRun = ref<Run | null>(null)
     const loading = ref(false)
     let subscribedChannelName: string | null = null
@@ -24,9 +26,11 @@ export function useRunSummary(userId: () => number | null | undefined) {
     async function load() {
         loading.value = true
         try {
-            const { data } = await api.get<{ data: Run[]; backlog: number }>('/api/runs')
+            const { data } = await api.get<{ data: Run[]; backlog: number; pending: boolean; running: boolean }>('/api/runs')
             latestRun.value = data.data[0] ?? null
             backlog.value = data.backlog
+            pending.value = data.pending
+            running.value = data.running
         } finally {
             loading.value = false
         }
@@ -50,6 +54,7 @@ export function useRunSummary(userId: () => number | null | undefined) {
 
         echo.private(subscribedChannelName).listen('.run.progress', (payload: RunProgressPayload) => {
             backlog.value = payload.backlog
+            running.value = payload.status === 'running'
 
             if (latestRun.value && latestRun.value.id === payload.run_id) {
                 latestRun.value = { ...latestRun.value, status: payload.status, stage_stats: payload.stage_stats }
@@ -66,5 +71,5 @@ export function useRunSummary(userId: () => number | null | undefined) {
         }
     })
 
-    return { backlog, latestRun, loading, load, subscribeToLiveUpdates }
+    return { backlog, latestRun, pending, running, loading, load, subscribeToLiveUpdates }
 }

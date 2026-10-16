@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import api from '@/shared/lib/api'
 import { useAuthStore } from '@/features/auth/stores/auth'
 import AppHeader from '@/shared/components/AppHeader.vue'
@@ -7,6 +7,7 @@ import StatsPanels from '@/features/stats/components/StatsPanels.vue'
 import { ratingByKey, type RatingKey } from '@/shared/lib/ratings'
 import { listingColumns, scoringOptions, statusTabs } from '../constants'
 import { useListingStatusDialog } from '../composables/useListingStatusDialog'
+import { pipelineStages, usePipelineRun } from '../composables/usePipelineRun'
 import { useRunSummary } from '../composables/useRunSummary'
 import type { Listing } from '../types'
 
@@ -31,69 +32,22 @@ const filteredListings = computed(() =>
     }),
 )
 
-const { backlog, latestRun, load: loadRunSummary, subscribeToLiveUpdates } = useRunSummary(() => auth.user?.id)
+const { backlog, latestRun, pending, running, load: loadRunSummary, subscribeToLiveUpdates } = useRunSummary(() => auth.user?.id)
 
-interface EmailPullStatus {
-    state: 'idle' | 'pending' | 'running' | 'done' | 'failed'
-    processed?: number
-    stubs?: number
-    failed?: number
+const {
+    busy: pipelineBusy,
+    active: pipelineActive,
+    outcome: pipelineOutcome,
+    currentStage,
+    completedStages,
+    elapsedSeconds,
+    start: runPipeline,
+    dismiss: dismissOutcome,
+} = usePipelineRun({ latestRun, pending, running, load: loadRunSummary }, () => loadListings())
+
+function formatElapsed(seconds: number): string {
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
-
-const pullingEmail = ref(false)
-const emailStatus = ref<string | null>(null)
-
-const pullPollMs = 3000
-const pullGiveUpMs = 10 * 60 * 1000
-let pullTimer: ReturnType<typeof setTimeout> | undefined
-
-function describePull(status: EmailPullStatus): string | null {
-    if (status.state === 'pending') return 'Queued — starts within a minute…'
-    if (status.state === 'running') return 'Pulling…'
-    if (status.state === 'failed') return 'Pull failed — see the Laravel log.'
-    if (status.state !== 'done') return null
-
-    const { processed = 0, stubs = 0, failed = 0 } = status
-
-    return `Processed ${processed} email${processed === 1 ? '' : 's'}, created ${stubs} listing${stubs === 1 ? '' : 's'}${failed ? `, ${failed} failed` : ''}.`
-}
-
-async function trackPull(startedAt: number) {
-    const { data } = await api.get<{ data: EmailPullStatus }>('/api/admin/email-intake/status')
-    emailStatus.value = describePull(data.data)
-
-    const settled = data.data.state === 'done' || data.data.state === 'failed' || data.data.state === 'idle'
-
-    if (!settled && Date.now() - startedAt < pullGiveUpMs) {
-        pullTimer = setTimeout(() => trackPull(startedAt).catch(stopPulling), pullPollMs)
-
-        return
-    }
-
-    pullingEmail.value = false
-
-    if (data.data.state === 'done') {
-        await Promise.all([loadListings(), loadRunSummary()])
-    }
-}
-
-function stopPulling() {
-    pullingEmail.value = false
-}
-
-async function pullFromEmail() {
-    pullingEmail.value = true
-    emailStatus.value = null
-    try {
-        await api.post('/api/admin/email-intake/run')
-        await trackPull(Date.now())
-    } catch (error) {
-        stopPulling()
-        throw error
-    }
-}
-
-onUnmounted(() => clearTimeout(pullTimer))
 
 // Changes as a run starts, finishes each stage, and ends — the stat
 // tiles re-pull on each change so they track a run while it's going.
@@ -149,9 +103,58 @@ onMounted(() => {
                     >
                         Last run ({{ latestRun.trigger }}): {{ latestRun.status }}
                     </q-chip>
-                    <q-btn outline no-caps dense label="Pull from email" :loading="pullingEmail" @click="pullFromEmail" />
-                    <span v-if="emailStatus" class="text-sm text-zinc-400">{{ emailStatus }}</span>
+                    <q-btn
+                        color="primary"
+                        unelevated
+                        no-caps
+                        dense
+                        icon="play_arrow"
+                        label="Run pipeline"
+                        :loading="pipelineBusy"
+                        @click="runPipeline"
+                    />
                 </div>
+
+                <q-banner v-if="pipelineActive" dense rounded class="q-mb-md bg-white/5 text-zinc-200">
+                    <template #avatar>
+                        <q-spinner color="accent" size="24px" />
+                    </template>
+                    <div v-if="!running" class="text-weight-medium">Queued. The run starts within a minute…</div>
+                    <template v-else>
+                        <div class="text-weight-medium">
+                            {{ currentStage?.label ?? 'Wrapping up' }}…
+                            <span class="text-zinc-400">
+                                step {{ Math.min(completedStages + 1, pipelineStages.length) }} of {{ pipelineStages.length }}
+                                · {{ formatElapsed(elapsedSeconds) }} elapsed · {{ backlog }} listing{{ backlog === 1 ? '' : 's' }} waiting
+                            </span>
+                        </div>
+                        <q-linear-progress
+                            :value="completedStages / pipelineStages.length"
+                            color="accent"
+                            track-color="grey-9"
+                            rounded
+                            class="q-mt-sm"
+                        />
+                    </template>
+                </q-banner>
+
+                <q-banner
+                    v-else-if="pipelineOutcome"
+                    dense
+                    rounded
+                    class="q-mb-md"
+                    :class="{
+                        'bg-green-500/15 text-green-300': pipelineOutcome.tone === 'positive',
+                        'bg-amber-500/15 text-amber-300': pipelineOutcome.tone === 'warning',
+                        'bg-red-500/15 text-red-300': pipelineOutcome.tone === 'negative',
+                    }"
+                >
+                    <div class="text-weight-medium">{{ pipelineOutcome.headline }}</div>
+                    <div v-if="pipelineOutcome.details.length">{{ pipelineOutcome.details.join(' · ') }}</div>
+                    <template #action>
+                        <q-btn flat dense no-caps label="Dismiss" @click="dismissOutcome" />
+                    </template>
+                </q-banner>
 
                 <StatsPanels :refresh-key="statsRefreshKey" class="q-mb-lg" />
 

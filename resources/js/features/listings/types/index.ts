@@ -46,7 +46,7 @@ export interface Listing {
     sources: string[]
 }
 
-export type RunTrigger = 'schedule' | 'catchup'
+export type RunTrigger = 'schedule' | 'catchup' | 'manual'
 
 export type RunStatus = 'running' | 'done' | 'paused_time' | 'paused_rate_limited' | 'failed'
 

@@ -11,6 +11,7 @@ use App\Llm\ScoreResult;
 use App\Models\Listing;
 use App\Models\ListingSalary;
 use App\Models\Preference;
+use App\Models\Run;
 use App\Models\User;
 use App\Services\RunOrchestratorService;
 use Illuminate\Support\Facades\Context;
@@ -163,6 +164,22 @@ test('catchup and schedule triggers are both recorded on the Run row', function 
     $run = app(RunOrchestratorService::class)->run('catchup');
 
     expect($run->trigger)->toBe('catchup');
+});
+
+test('stage stats are saved on the Run row as each stage finishes, not only at the end', function () {
+    makeAdminUser();
+
+    $seenMidRun = [];
+    Event::listen(RunProgressUpdated::class, function (RunProgressUpdated $event) use (&$seenMidRun) {
+        if ($event->status === 'running') {
+            $seenMidRun[] = array_keys(Run::find($event->runId)->stage_stats);
+        }
+    });
+
+    app(RunOrchestratorService::class)->run('manual');
+
+    expect($seenMidRun[0])->toBe(['intake']);
+    expect($seenMidRun[1])->toBe(['intake', 'stub_filter']);
 });
 
 test('a run that scores a Strong match sends a Pushover-style notification', function () {

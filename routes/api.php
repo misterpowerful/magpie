@@ -3,8 +3,6 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Actions\Auth\CurrentUserAction;
-use App\Http\Controllers\Actions\EmailIntake\RunEmailIntakeAction;
-use App\Http\Controllers\Actions\EmailIntake\ShowEmailIntakeStatusAction;
 use App\Http\Controllers\Actions\Health\PingAction;
 use App\Http\Controllers\Actions\Insights\CostInsightsAction;
 use App\Http\Controllers\Actions\Insights\RatingInsightsAction;
@@ -17,6 +15,7 @@ use App\Http\Controllers\Actions\Preferences\ShowPreferencesAction;
 use App\Http\Controllers\Actions\Preferences\UpdatePreferencesAction;
 use App\Http\Controllers\Actions\Preferences\UploadResumeAction;
 use App\Http\Controllers\Actions\Runs\IndexRunsAction;
+use App\Http\Controllers\Actions\Runs\RequestRunAction;
 use App\Http\Controllers\Actions\Sites\DestroySiteAction;
 use App\Http\Controllers\Actions\Sites\IndexSitesAction;
 use App\Http\Controllers\Actions\Sites\ProbeSiteAction;
@@ -64,7 +63,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/sites/{site}', UpdateSiteAction::class);
         Route::delete('/sites/{site}', DestroySiteAction::class);
         Route::post('/sites/{site}/run', RunSiteAction::class);
-        Route::post('/email-intake/run', RunEmailIntakeAction::class);
-        Route::get('/email-intake/status', ShowEmailIntakeStatusAction::class);
+        Route::post('/runs', RequestRunAction::class);
     });
 });

@@ -11,7 +11,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 
-#[Signature('magpie:run {--trigger=schedule : schedule|catchup}')]
+#[Signature('magpie:run {--trigger=schedule : schedule|catchup|manual}')]
 #[Description('Run one full pipeline sweep: intake, filters, enrichment, scoring (spec section 8 "Run behavior")')]
 class RunMagpie extends Command
 {

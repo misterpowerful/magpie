@@ -30,8 +30,9 @@ Schedule::command('magpie:catch-up')
 Schedule::command('magpie:check-confirmations')
     ->cron('0 */4 * * *');
 
-// Picks up the dashboard's "Pull from email" button: the web process
-// can't run the claude CLI, so it files a request and this does the pull.
-Schedule::command('magpie:run-requested-email-pull')
+// Picks up the dashboard's "Run pipeline" button: the web process can't
+// run the claude CLI, so it files a request and this does the run. The
+// mutex outlives the run lock so a crashed run can't wedge it for a day.
+Schedule::command('magpie:run-requested')
     ->everyMinute()
-    ->withoutOverlapping();
+    ->withoutOverlapping(130);

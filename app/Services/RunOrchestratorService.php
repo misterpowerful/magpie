@@ -136,6 +136,10 @@ final class RunOrchestratorService
      */
     private function broadcastProgress(Run $run, User $user, string $status, array $stats): void
     {
+        // Saved as each stage finishes (not just at the end) so a client
+        // polling the run can see how far along it is.
+        $run->update(['stage_stats' => $stats]);
+
         $backlog = Listing::where('user_id', $user->id)
             ->whereIn('state', ['new', 'fetched', 'filtered_in'])
             ->count();

@@ -29,7 +29,7 @@ class Run extends Model
     /** @use HasFactory<RunFactory> */
     use HasFactory;
 
-    public const TRIGGERS = ['schedule', 'catchup'];
+    public const TRIGGERS = ['schedule', 'catchup', 'manual'];
 
     public const STATUSES = ['running', 'done', 'paused_time', 'paused_rate_limited', 'failed'];
 
